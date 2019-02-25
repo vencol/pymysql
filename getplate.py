@@ -36,7 +36,7 @@ import json
 #     %{'table':'23456','Date':data[sub].text,'OpenPrice':float(data[sub+1].text),'HighPrice':float(data[sub+2].text),'LowPrice':float(data[sub+3].text),'ClosePrice':float(data[sub+4].text),\
 #         'DiffrenceValue':float(data[sub+5].text),'DiffrencePercent':float(data[sub+6].text),'Amplitude':float(data[sub+9].text),\
 #         'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':float(data[sub+10].text)}
-stocklist = []
+stocklist = {}
 
 # headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'}
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/2010010 Firefox/62.0'}
@@ -48,54 +48,26 @@ req = urllib.request.Request(url=temp, headers=headers)
 try:
     stockopen = urllib.request.urlopen(req)
     html =  str(stockopen.read())
-    # qstr = '{"accessToken": "521de21161b23988173e6f7f48f9ee96e28", "User-Agent": "Apache-HttpClient/4.5.2 (Java/1.8.0_131)"}'
-    # qstr = '{"page":0,"count":100,"order":-1,"total":47,"pagecount":1,"time":"2019-02-24 21:30:17","key":"\\/finance\\/hs\\/realtimedata\\/plate\\/19f9721cc1703e528ec70c3c85eed59a.json","list":[{"PLATE_ID":"hy015000","STOCK_COUNT":1,"RN":1,"NAME":""},{"PLATE_ID":"hy012001","STOCK_COUNT":53,"RN":2,"NAME":""},{"PLATE_ID":"hy019000","STOCK_COUNT":23,"RN":3,"NAME":""},{"PLATE_ID":"hy017000","STOCK_COUNT":10,"RN":4,"NAME":""},{"PLATE_ID":"hy013000","STOCK_COUNT":50,"RN":5,"NAME":""},{"PLATE_ID":"hy014000","STOCK_COUNT":49,"RN":6,"NAME":""},{"PLATE_ID":"hy016000","STOCK_COUNT":5,"RN":7,"NAME":""},{"PLATE_ID":"hy010000","STOCK_COUNT":122,"RN":8,"NAME":""},{"PLATE_ID":"hy003005","STOCK_COUNT":37,"RN":9,"NAME":""},{"PLATE_ID":"hy003002","STOCK_COUNT":43,"RN":10,"NAME":""},{"PLATE_ID":"hy003008","STOCK_COUNT":24,"RN":11,"NAME":""},{"PLATE_ID":"hy003009","STOCK_COUNT":30,"RN":12,"NAME":""},{"PLATE_ID":"hy003006","STOCK_COUNT":11,"RN":13,"NAME":""},{"PLATE_ID":"hy003007","STOCK_COUNT":8,"RN":14,"NAME":""},{"PLATE_ID":"hy003010","STOCK_COUNT":12,"RN":15,"NAME":""},{"PLATE_ID":"hy003012","STOCK_COUNT":16,"RN":16,"NAME":""},{"PLATE_ID":"hy003017","STOCK_COUNT":86,"RN":17,"NAME":""},{"PLATE_ID":"hy003019","STOCK_COUNT":67,"RN":18,"NAME":""},{"PLATE_ID":"hy003013","STOCK_COUNT":238,"RN":19,"NAME":""},{"PLATE_ID":"hy003016","STOCK_COUNT":74,"RN":20,"NAME":""},{"PLATE_ID":"hy003015","STOCK_COUNT":24,"RN":21,"NAME":""},{"PLATE_ID":"hy005000","STOCK_COUNT":99,"RN":22,"NAME":""},{"PLATE_ID":"hy003022","STOCK_COUNT":204,"RN":23,"NAME":""},{"PLATE_ID":"hy003023","STOCK_COUNT":133,"RN":24,"NAME":""},{"PLATE_ID":"hy003020","STOCK_COUNT":60,"RN":25,"NAME":""},{"PLATE_ID":"hy003021","STOCK_COUNT":137,"RN":26,"NAME":""},{"PLATE_ID":"hy003028","STOCK_COUNT":22,"RN":27,"NAME":""},{"PLATE_ID":"hy003026","STOCK_COUNT":344,"RN":28,"NAME":""},{"PLATE_ID":"hy003025","STOCK_COUNT":229,"RN":29,"NAME":""},{"PLATE_ID":"hy006000","STOCK_COUNT":173,"RN":30,"NAME":""},{"PLATE_ID":"hy002000","STOCK_COUNT":76,"RN":31,"NAME":""},{"PLATE_ID":"hy001000","STOCK_COUNT":42,"RN":32,"NAME":""},{"PLATE_ID":"hy004000","STOCK_COUNT":113,"RN":33,"NAME":""},{"PLATE_ID":"hy009000","STOCK_COUNT":267,"RN":34,"NAME":""},{"PLATE_ID":"hy007000","STOCK_COUNT":110,"RN":35,"NAME":""},{"PLATE_ID":"hy018000","STOCK_COUNT":57,"RN":36,"NAME":""},{"PLATE_ID":"hy008000","STOCK_COUNT":11,"RN":37,"NAME":""},{"PLATE_ID":"hy003004","STOCK_COUNT":41,"RN":38,"NAME":""},{"PLATE_ID":"hy003003","STOCK_COUNT":44,"RN":39,"NAME":""},{"PLATE_ID":"hy003018","STOCK_COUNT":33,"RN":40,"NAME":""},{"PLATE_ID":"hy003029","STOCK_COUNT":6,"RN":41,"NAME":""},{"PLATE_ID":"hy003027","STOCK_COUNT":45,"RN":42,"NAME":""},{"PLATE_ID":"hy003024","STOCK_COUNT":51,"RN":43,"NAME":""},{"PLATE_ID":"hy003011","STOCK_COUNT":14,"RN":44,"NAME":""},{"PLATE_ID":"hy011000","STOCK_COUNT":135,"RN":45,"NAME":""},{"PLATE_ID":"hy003014","STOCK_COUNT":219,"RN":46,"NAME":""},{"PLATE_ID":"hy003001","STOCK_COUNT":50,"RN":47,"NAME":""}]}'
-    # print(html[0])
-    # print(html[1])
-    # print(html[2])
-    # print(html[3])
-    # print(qstr)
-    # print(qstr[0])
-    # print(qstr[1])
-    # print(qstr[2])
-    # print(qstr[3])
-    # print(html[2:-1])
-    # print(html)
-    # htmljson = json.loads(qstr)
     htmljson = json.loads(html[2:-1])
     platelist = htmljson.get('list')
-    print(platelist)
-    print(platelist[0])
-    print(platelist[1])
-    print(platelist[2])
+    i = 0
     for item in platelist:
-        print(item)
-    listposi = html.find('list')
-    for i in range(177, 210):
-        print(platelist[i])
-    print(htmljson[0])
-    print(htmljson[1])
-    print(htmljson[2])
-    print(htmljson[3])
-    print(platelist)
-    # print(htmljson)
-    soup = BeautifulSoup(html, 'lxml')
-    # print(soup)
-    # tag = soup.find('table', {'class': "ID_table stocks-info-table"})
-    tag = soup.find('table', {'class': "table_bg001 border_box limit_sale"})
-    print(tag)
-    data = tag.find_all('td')
+        stocklist[i] = item
+        i += 1
+        # pid = eval(str(item))
+        # print(item)
+        # print(pid)
+        # print(pid['NAME'])
+        # print(pid['PLATE_ID'])
+        # print(pid['STOCK_COUNT'])
+        
     stockopen.close()
-    print(data)
-    sub = 0
-    alllen = len(data)
 except urllib.error.URLError as e:
     if hasattr(e, 'code'):
-        print("%(stock)06d HTTPError "%{'stock':stnum})
         print(e.code)
     elif hasattr(e, 'reason'):
-        print("%(stock)06d URLError"%{'stock':stnum})
         print(e.reason)
+    exit(0)
 print(stocklist)
 
 def restoreNumber(numStr):
