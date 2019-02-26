@@ -47,7 +47,7 @@ temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquo
 req = urllib.request.Request(url=temp, headers=headers)
 
 # abs_dir = "F:\\code\\demo\\python\\pymysql\\log.txt"
-abs_dir = os.path.dirname(os.path.abspath(__file__)) + '\\log.txt'
+abs_dir = os.path.dirname(os.path.abspath(__file__)) + '\\amarket_log.txt'
 print(abs_dir)
 logfp = open(abs_dir, "w")
 logfp.write("start the A market get data program\n")
@@ -217,7 +217,7 @@ def spider(stnum):
     
 
 
-pool = ThreadPool(10)
+pool = ThreadPool(16)
 # results = pool.map(spider, stocklist)
 try:
     results = pool.map(spider, stocklist)
