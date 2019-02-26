@@ -134,76 +134,59 @@ def spider(stnumlist):
                 print(results)
     except Exception as e:
         raise e
-    # finally:
-    #     db.close()	#关闭连接
-    minyea = 2010
-    mydate = datetime.now()
-    yea = mydate.year
-    sea = (mydate.month - 1) // 3 + 1
-    # nowyea = datetime.now().year
-    # for yea in range(nowyea, minyea, -1):
-        # for sea in range(1, 5):
-    while yea > minyea:
-        while sea > 0:
+    
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
-            temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http://quotes.money.163.com/hs/service/diyrank.php&page=0&query=PLATE_IDS:%(hy)s&fields=NO,SYMBOL,NAME,PRICE,PERCENT,UPDOWN,FIVE_MINUTE,OPEN,YESTCLOSE,HIGH,LOW,VOLUME,TURNOVER,HS,LB,WB,ZF,PE,MCAP,TCAP,MFSUM,MFRATIO.MFRATIO2,MFRATIO.MFRATIO10,SNAME,CODE,ANNOUNMT,UVSNEWS&sort=PERCENT&order=desc&count=380&type=query'%{'hy':stnum}
-            print("request url is %(urll)s"%{'urll' : temp})
-            logfp.write("request url is %(urll)s"%{'urll' : temp})
-            req = urllib.request.Request(url=temp, headers=headers)
-            
-            try:
-                stockopen = urllib.request.urlopen(req)
-                html =  stockopen.read()
-                soup = BeautifulSoup(html, 'lxml')
-                tag = soup.find('table', {'class': "ID_table stocks-info-table"})
-                print(tag)
-                data = tag.find_all('td')
-                print(data)
-                stockopen.close()
-                print(data[0])
+    temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http://quotes.money.163.com/hs/service/diyrank.php&page=0&query=PLATE_IDS:%(hy)s&fields=NO,SYMBOL,NAME,PRICE,PERCENT,UPDOWN,FIVE_MINUTE,OPEN,YESTCLOSE,HIGH,LOW,VOLUME,TURNOVER,HS,LB,WB,ZF,PE,MCAP,TCAP,MFSUM,MFRATIO.MFRATIO2,MFRATIO.MFRATIO10,SNAME,CODE,ANNOUNMT,UVSNEWS&sort=PERCENT&order=desc&count=380&type=query'%{'hy':stnum}
+    print("request url is %(urll)s"%{'urll' : temp})
+    logfp.write("request url is %(urll)s"%{'urll' : temp})
+    req = urllib.request.Request(url=temp, headers=headers)
 
-                sub = 0
-                alllen = len(data)
-                while sub < alllen:
-                    # break;
-                    temp = """INSERT INTO `%(stock)s(%(name)s)` \
-                        (Date, StockPlate, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
-                    VALUES \
-                        ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s');""" \
-                        %{'stock':stnum, 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
-                            'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
-                            'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text}
-                    # print(temp)
-                    logfp.write("inserinfo is %(temp)s\n"%{'temp' : temp})
-                    sub += 11
-                    try:
-                        cur.execute(temp) 	#执行sql语句
-                        # cur.execute("INSERT INTO `23456` (Date, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) VALUES (2019-02-22, 7.70, 8.05, 7.69, 8.00, 0.29, 3.76, 4.67, 240900, 18995, 2.89)") 	#执行sql语句
-                        results = cur.fetchall()	#获取查询的所有记录
-                        if results:
-                            print(results)
-                        db.commit()
-                    except Exception as e:
-                        db.rollback() 
-            except urllib.error.URLError as e:
-                if hasattr(e, 'code'):
-                    print("%(stock)s HTTPError "%{'stock':stnum})
-                    logfp.write("%(stock)s HTTPError \n"%{'stock':stnum})
-                    # print(e.code)
-                elif hasattr(e, 'reason'):
-                    print("%(stock)s URLError"%{'stock':stnum})
-                    logfp.write("%(stock)s URLError\n"%{'stock':stnum})
-                    # print(e.reason)
-                sea -= 1
-                yea = minyea
-                continue
-            sea -= 1
-        yea -= 1
-        if(sea == 0):
-            sea = 4
-        if yea <= minyea:
-            db.close()	#关闭连接y
-            break
+    try:
+
+        stockopen = urllib.request.urlopen(req)
+        html =  str(stockopen.read())
+        # print(html)
+        htmljson = json.loads(html[2:-1])
+        # print(htmljson)
+        hylist = htmljson.get('list')
+        for item in hylist:
+            print(item['CODE'])
+            print("%(item)s\n"%{'item':str(item)})
+            logfp.write("%(item)s\n"%{'item':str(item)})
+
+        sub = 0
+        alllen = len(data)
+        while sub < alllen:
+            # break;
+            temp = """INSERT INTO `%(stock)s(%(name)s)` \
+                (Date, StockPlate, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
+            VALUES \
+                ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s');""" \
+                %{'stock':stnum, 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
+                    'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
+                    'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text}
+            # print(temp)
+            logfp.write("inserinfo is %(temp)s\n"%{'temp' : temp})
+            sub += 11
+            try:
+                cur.execute(temp) 	#执行sql语句
+                # cur.execute("INSERT INTO `23456` (Date, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) VALUES (2019-02-22, 7.70, 8.05, 7.69, 8.00, 0.29, 3.76, 4.67, 240900, 18995, 2.89)") 	#执行sql语句
+                results = cur.fetchall()	#获取查询的所有记录
+                if results:
+                    print(results)
+                db.commit()
+            except Exception as e:
+                db.rollback() 
+    except urllib.error.URLError as e:
+        if hasattr(e, 'code'):
+            print("%(stock)s HTTPError "%{'stock':stnum})
+            logfp.write("%(stock)s HTTPError \n"%{'stock':stnum})
+            # print(e.code)
+        elif hasattr(e, 'reason'):
+            print("%(stock)s URLError"%{'stock':stnum})
+            logfp.write("%(stock)s URLError\n"%{'stock':stnum})
+            # print(e.reason)
+    db.close()	#关闭连接y
 
     
 
