@@ -51,15 +51,16 @@ try:
     htmljson = json.loads(html[2:-1])
     platelist = htmljson.get('list')
     i = 0
+    
     for item in platelist:
         stocklist[i] = item
         i += 1
-        # pid = eval(str(item))
-        # print(item)
-        # print(pid)
-        # print(pid['NAME'])
-        # print(pid['PLATE_ID'])
-        # print(pid['STOCK_COUNT'])
+        pid = eval(str(item))
+        print(item)
+        print(pid)
+        print(pid['NAME'])
+        print(pid['PLATE_ID'])
+        print(pid['STOCK_COUNT'])
         
     stockopen.close()
 except urllib.error.URLError as e:
