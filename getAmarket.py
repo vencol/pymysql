@@ -27,16 +27,6 @@ import os
 # import importlib
 # importlib.reload(sys)
 
-# id av cid title tminfo time click danmu coins favourites duration honor_click honor_coins honor_favourites
-# mid name article fans tags[3] common
-
-# temp = """INSERT INTO `%(table)s` \
-#     (Date, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
-# VALUES \
-#     (%(Date)s, %(OpenPrice).02f, %(HighPrice).02f, %(LowPrice).02f, %(ClosePrice).02f, %(DiffrenceValue).02f, %(DiffrencePercent).02f, %(Amplitude).02f, %(Volume)s, %(Amount)s, %(HandRate).02f);""" \
-#     %{'table':'23456','Date':data[sub].text,'OpenPrice':float(data[sub+1].text),'HighPrice':float(data[sub+2].text),'LowPrice':float(data[sub+3].text),'ClosePrice':float(data[sub+4].text),\
-#         'DiffrenceValue':float(data[sub+5].text),'DiffrencePercent':float(data[sub+6].text),'Amplitude':float(data[sub+9].text),\
-#         'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':float(data[sub+10].text)}
 stocklist = {}
 
 # headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'}
@@ -88,38 +78,19 @@ def restoreNumber(numStr):
 
 def spider(stnum):
     stockplate = 0
-    # print(type(stnum))
-    # if (stnum >= 730000) and (stnum < 731000):#沪市新股
-    #     stockplate = 0
-    # elif (stnum >= 700000) and (stnum < 701000):#沪市配股
-    #     stockplate = 0
-    # elif (stnum >= 600000) and (stnum < 600200):#沪市A股
-    #     stockplate = 0
-    # elif (stnum >= 300000) and (stnum < 301000):#创业板股票
-    #     stockplate = 0
-    # elif (stnum >= 80000) and (stnum < 81000):#沪市A股
-    #     stockplate = 0
-    # elif (stnum >= 2000) and (stnum < 3000):#中小板股票
-    #     stockplate = 0
-    # elif (stnum < 1000):#深市A股
-    #     stockplate = 0
-    # else:
-    #     return
     #打开数据库连接
     db= pymysql.connect(host="localhost",user="pytest",
         password="pytest123",db="stock",port=3306)
     # 使用cursor()方法获取操作游标
     cur = db.cursor()
-    # stnum = 2402
-    # for stnum in range(300000, 301000):#创业板股票
-    # for stnum in range(2000, 3000):#中小板股票
-    # for stnum in range(600000, 602000):#沪市A股票
     
     name = stnum['NAME'].encode('utf-8').decode('unicode_escape')
     try:
-        # sql = 'select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=' + 
-        cur.execute("select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'stock\' and TABLE_NAME=\'%(stock)s*\'"%{'stock' : stnum['SYMBOL']}) 	#执行sql语句
+        temp = "select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'stock\' and TABLE_NAME=\'%(stock)s(%(name)s)\'"%{'stock' : stnum['SYMBOL'], 'name' : name} 	#执行sql语句
+        # print(temp)    
+        cur.execute(temp) 	#执行sql语句
         results = cur.fetchall()	#获取查询的所有记录
+        # print(results)
         if results:
             print(results)
         else:
@@ -157,6 +128,15 @@ def spider(stnum):
         # for sea in range(1, 5):
     while yea > minyea:
         while sea > 0:
+            temp = 'select * from `%(stock)s(%(name)s)` where Date="%(nian)d-%(yue)02d-28"'%{'stock':stnum['SYMBOL'], 'name' : name, 'nian': yea, 'yue' : 3*sea}
+            # print(temp)
+            cur.execute(temp) 	#执行sql语句
+            results = cur.fetchall()	#获取查询的所有记录
+            if results:
+                print("%(stock)s(%(name)s data %(results)s)"%{'stock':stnum['SYMBOL'], 'name' : name, 'nian': yea, 'results' : results})
+                sea -= 1
+                continue
+
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
             temp = "http://quotes.money.163.com/trade/lsjysj_%(stock)s.html?year=%(year)d&season=%(season)d"%{'stock':stnum['SYMBOL'], 'year':yea, 'season':sea}
             print("request url is %(urll)s"%{'urll' : temp})
@@ -173,6 +153,9 @@ def spider(stnum):
 
                 sub = 0
                 alllen = len(data)
+                if alllen == 0:
+                    yea = minyea
+                    break
                 while sub < alllen:
                     # break;
                     temp = """INSERT INTO `%(stock)s(%(name)s)` \
@@ -182,8 +165,8 @@ def spider(stnum):
                         %{'stock':stnum['SYMBOL'], 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
                             'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
                             'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text}
-                    # print(temp)
-                    logfp.write("inserinfo is %(temp)s\n"%{'temp' : temp})
+                    # print(temp[235:])
+                    logfp.write("%(stock)s(%(name)s) inserinfo is %(temp)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : temp})
                     sub += 11
                     try:
                         cur.execute(temp) 	#执行sql语句
@@ -212,6 +195,7 @@ def spider(stnum):
             sea = 4
         if yea <= minyea:
             db.close()	#关闭连接y
+            logfp.flush()
             break
 
     
