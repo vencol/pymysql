@@ -2,6 +2,7 @@
 
 from lxml import etree
 from multiprocessing.dummy import Pool as ThreadPool
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Executor
 # import requests
 import time
 # import sys
@@ -106,27 +107,26 @@ def spider(stnumlist):
     # name = stnum['NAME'].encode('utf-8').decode('unicode_escape')
     try:
         # sql = 'select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=' + 
-        cur.execute("select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'stock\' and TABLE_NAME=\'%(stock)s*\'"%{'stock' : stnum}) 	#执行sql语句
+        temp = "select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'stock\' and TABLE_NAME=\'%(stock)s(%(name)s)\'"%{'stock' : stnum, 'name' : name} 	#执行sql语句
+        print(temp)
+        cur.execute(temp) 	#执行sql语句
         results = cur.fetchall()	#获取查询的所有记录
+        print(results)
         if results:
             print(results)
         else:
             print("creat table for %(stock)s(%(name)s) ;"%{'stock' : stnum, 'name' : name})
             logfp.write("creat table for %(stock)s(%(name)s) ;"%{'stock' : stnum, 'name' : name})
             temp = "CREATE TABLE IF NOT EXISTS `%(stock)s(%(name)s)` (\
-            `Date` varchar(32) NOT NULL,\
-            `StockPlate` varchar(4) NOT NULL,\
-            `OpenPrice` varchar(8) NOT NULL,\
-            `HighPrice` varchar(8) NOT NULL,\
-            `LowPrice` varchar(8) NOT NULL,\
-            `ClosePrice` varchar(8) NOT NULL,\
-            `DiffrenceValue` varchar(8) NOT NULL,\
-            `DiffrencePercent` varchar(8) NOT NULL,\
-            `Amplitude` varchar(8) NOT NULL,\
-            `Volume` bigint(20) NOT NULL,\
-            `Amount` bigint(20) NOT NULL,\
-            `HandRate` varchar(8) NOT NULL,\
-            PRIMARY KEY (`Date`)\
+            `Code` varchar(8) NOT NULL,\
+            `StockPlate` varchar(16) NOT NULL,\
+            `Cname` varchar(32) NOT NULL,\
+            `Price` varchar(8) NOT NULL,\
+            `FlowMarket` varchar(16) NOT NULL,\
+            `AllMarker` varchar(16) NOT NULL,\
+            `Profit` varchar(16) NOT NULL,\
+            `Revenue` varchar(16) NOT NULL,\
+            PRIMARY KEY (`Code`)\
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"%{'stock':stnum, 'name' : name}
             cur.execute(temp) 	#执行sql语句
             results = cur.fetchall()	#获取查询的所有记录
@@ -138,7 +138,7 @@ def spider(stnumlist):
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
     temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http://quotes.money.163.com/hs/service/diyrank.php&page=0&query=PLATE_IDS:%(hy)s&fields=NO,SYMBOL,NAME,PRICE,PERCENT,UPDOWN,FIVE_MINUTE,OPEN,YESTCLOSE,HIGH,LOW,VOLUME,TURNOVER,HS,LB,WB,ZF,PE,MCAP,TCAP,MFSUM,MFRATIO.MFRATIO2,MFRATIO.MFRATIO10,SNAME,CODE,ANNOUNMT,UVSNEWS&sort=PERCENT&order=desc&count=380&type=query'%{'hy':stnum}
     print("request url is %(urll)s"%{'urll' : temp})
-    logfp.write("request url is %(urll)s"%{'urll' : temp})
+    logfp.write("request url is %(urll)s\n"%{'urll' : temp})
     req = urllib.request.Request(url=temp, headers=headers)
 
     try:
@@ -150,24 +150,25 @@ def spider(stnumlist):
         # print(htmljson)
         hylist = htmljson.get('list')
         for item in hylist:
-            print(item['CODE'])
-            print("%(item)s\n"%{'item':str(item)})
+            # print(item['SYMBOL'])
+            # print("%(item)s\n"%{'item':str(item)})
             logfp.write("%(item)s\n"%{'item':str(item)})
+            logfp.flush()
 
-        sub = 0
-        alllen = len(data)
-        while sub < alllen:
+            
+
+        # sub = 0
+        # alllen = len(data)
+        # while sub < alllen:
             # break;
             temp = """INSERT INTO `%(stock)s(%(name)s)` \
-                (Date, StockPlate, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
+                (Code, StockPlate, Cname, Price, FlowMarket, AllMarker, Profit, Revenue) \
             VALUES \
-                ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s');""" \
-                %{'stock':stnum, 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
-                    'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
-                    'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text}
-            # print(temp)
+                ('%(Code)s', '%(StockPlate)s', '%(Cname)s', '%(Price)s', '%(FlowMarket)s', '%(AllMarker)s','%(Profit)s', '%(Revenue)s');""" \
+                %{'stock':stnum, 'name' : name,'Code':item['SYMBOL'],'StockPlate':stnum,'Cname':item['NAME'].encode('utf-8').decode('unicode_escape'),\
+                    'Price':item['PRICE'],'FlowMarket':item['MCAP'],'AllMarker':item['TCAP'],'Profit':item['MFRATIO']['MFRATIO2'],'Revenue':item['MFRATIO']['MFRATIO10']}
+            print(temp)
             logfp.write("inserinfo is %(temp)s\n"%{'temp' : temp})
-            sub += 11
             try:
                 cur.execute(temp) 	#执行sql语句
                 # cur.execute("INSERT INTO `23456` (Date, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) VALUES (2019-02-22, 7.70, 8.05, 7.69, 8.00, 0.29, 3.76, 4.67, 240900, 18995, 2.89)") 	#执行sql语句
@@ -190,22 +191,36 @@ def spider(stnumlist):
 
     
 
+if __name__ == '__main__':    
+    pool = ProcessPoolExecutor(max_workers=16)
+    try:
+        results = list(pool.map(spider, stocklist))
+    except Exception as e:
+        # print 'ConnectionError'
+        print (e)
+        time.sleep(300)
+        results = list(pool.map(spider, stocklist))
+        print(results)
+        logfp.write("ThreadPool exception\n")
+    print("spider over time")
+    logfp.write("spider over\n")
+    logfp.close()
 
-pool = ThreadPool(16)
-# results = pool.map(spider, stocklist)
-try:
-    results = pool.map(spider, stocklist)
-except Exception as e:
-    # print 'ConnectionError'
-    print (e)
-    time.sleep(300)
-    results = pool.map(spider, stocklist)
-    print(results)
-    logfp.write("ThreadPool exception\n")
+# pool = ThreadPool(1)
+# # results = pool.map(spider, stocklist)
+# try:
+#     results = pool.map(spider, stocklist)
+# except Exception as e:
+#     # print 'ConnectionError'
+#     print (e)
+#     time.sleep(300)
+#     results = pool.map(spider, stocklist)
+#     print(results)
+#     logfp.write("ThreadPool exception\n")
 
-# db.close()	#关闭连接y
-print("spider over")
-logfp.write("spider over\n")
-logfp.close()
-pool.close()
-pool.join()
+# # db.close()	#关闭连接y
+# print("spider over")
+# logfp.write("spider over\n")
+# logfp.close()
+# pool.close()
+# pool.join()

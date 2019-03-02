@@ -2,6 +2,7 @@
 
 from lxml import etree
 from multiprocessing.dummy import Pool as ThreadPool
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Executor
 # import requests
 import time
 # import sys
@@ -28,6 +29,7 @@ import os
 # importlib.reload(sys)
 
 stocklist = {}
+teststart = time.time()
 
 # headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'}
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/2010010 Firefox/62.0'}
@@ -67,7 +69,8 @@ except urllib.error.URLError as e:
     logfp.write("urllib.error.URLError")
         
 # print(stocklist[0])
-print(stocklist)
+endstart = time.time()
+print("get allitem time %(all)ss"%{'all' : endstart - teststart})
 
 def restoreNumber(numStr):
     pattern=re.compile('\D')
@@ -98,7 +101,7 @@ def spider(stnum):
             logfp.write("creat table for %(stock)s(%(name)s) ;"%{'stock' : stnum['SYMBOL'], 'name' : name})
             temp = "CREATE TABLE IF NOT EXISTS `%(stock)s(%(name)s)` (\
             `Date` varchar(32) NOT NULL,\
-            `StockPlate` varchar(4) NOT NULL,\
+            `StockPlate` varchar(8) NOT NULL,\
             `OpenPrice` varchar(8) NOT NULL,\
             `HighPrice` varchar(8) NOT NULL,\
             `LowPrice` varchar(8) NOT NULL,\
@@ -198,24 +201,38 @@ def spider(stnum):
             logfp.flush()
             break
 
-    
 
+if __name__ == '__main__':    
+    pool = ProcessPoolExecutor(max_workers=16)
+    try:
+        results = list(pool.map(spider, stocklist))
+    except Exception as e:
+        # print 'ConnectionError'
+        print (e)
+        time.sleep(300)
+        results = list(pool.map(spider, stocklist))
+        print(results)
+        logfp.write("ThreadPool exception\n")
+    print("spider over time")
+    logfp.write("spider over\n")
+    logfp.close()
 
-pool = ThreadPool(16)
-# results = pool.map(spider, stocklist)
-try:
-    results = pool.map(spider, stocklist)
-except Exception as e:
-    # print 'ConnectionError'
-    print (e)
-    time.sleep(300)
-    results = pool.map(spider, stocklist)
-    print(results)
-    logfp.write("ThreadPool exception\n")
+# pool = ThreadPool(16)
+# # results = pool.map(spider, stocklist)
+# try:
+#     results = pool.map(spider, stocklist)
+# except Exception as e:
+#     # print 'ConnectionError'
+#     print (e)
+#     time.sleep(300)
+#     results = pool.map(spider, stocklist)
+#     print(results)
+#     logfp.write("ThreadPool exception\n")
+# pool.close()
+# pool.join()
 
 # db.close()	#关闭连接y
-print("spider over")
-logfp.write("spider over\n")
-logfp.close()
-pool.close()
-pool.join()
+
+# print("spider over time")
+# logfp.write("spider over\n")
+# logfp.close()
