@@ -12,8 +12,10 @@ import re
 from bs4 import BeautifulSoup
 # import urllib as ur
 
+import socket
 import urllib.request
 import urllib.error
+import urllib
 import pymysql  #导入 pymysql
 from datetime import datetime 
 import json
@@ -45,16 +47,22 @@ logfp = open(abs_dir, "w")
 logfp.write("start the A market get data program\n")
 
 try:
-    stockopen = urllib.request.urlopen(req)
+    stockopen = urllib.request.urlopen(req, timeout=10)
     html =  str(stockopen.read())
     # print(html)
     htmljson = json.loads(html[2:-1])
     # print(htmljson)
-    stocklist = htmljson.get('list')
+    codelist = htmljson.get('list')
     # print(platelist)
-    for item in stocklist:
-        logfp.write("%(item)s\n"%{'item':str(item)})
-        # print(item)
+    # for item in stocklist:
+    #     print(item)
+    snum = 0
+    for item in codelist:
+        stocklist[snum] = item
+        snum += 1
+        # print(str(stocklist['snum']))
+        # logfp.write("%(item)s\n"%{'item':str(item)})
+    #     # print(item)
     logfp.flush()
     stockopen.close()
 except urllib.error.URLError as e:
@@ -67,8 +75,11 @@ except urllib.error.URLError as e:
         print("e.reason")
         print(e.reason)
     logfp.write("urllib.error.URLError")
+except socket.timeout as e:
+    print (type(e) )
         
-# print(stocklist[0])
+print(stocklist[0])
+print(stocklist)
 endstart = time.time()
 print("get allitem time %(all)ss"%{'all' : endstart - teststart})
 
@@ -78,12 +89,54 @@ def restoreNumber(numStr):
     numStr=''.join(numList)
     # print(int(numStr))
     return numStr
+def get_day_type(query_date):
+    url = "http://tool.bitefu.net/jiari/?d=%(day)s"%{'day' : query_date}
+    # temp = "http://tool.bitefu.net/jiari/?d=%(day)s"%{'day' : query_date}
+    
+    try:
+        req = urllib.request.Request(url=url, headers=headers)
+        stockopen = urllib.request.urlopen(req, timeout=10)
+        content =  stockopen.read()
+        stockopen.close()
+        if content:
+            try:
+                day_type = int(content)
+            except ValueError:
+                return -1
+            else:
+                return day_type
+        else:
+            return -1
+    except urllib.error.URLError as e:
+        if hasattr(e, 'code'):
+            print("%(stock)s get_day_type "%{'stock':url})
+            logfp.write("%(stock)s get_day_type \n"%{'stock':url})
+            # print(e.code)
+        elif hasattr(e, 'reason'):
+            print("%(stock)s get_day_type"%{'stock':url})
+            logfp.write("%(stock)s get_day_type\n"%{'stock':url})
+        return -1
+    except socket.timeout as e:
+        print (type(e) )
+        return -1
+
+ 
+ 
+def is_tradeday(query_date):
+    weekday = datetime.strptime(query_date, '%Y%m%d').isoweekday()
+    if weekday <= 5 and get_day_type(query_date) == 0:
+        return 1
+    else:
+        return 0
+ 
 
 def spider(stnum):
+    dbcount = 0
     stockplate = 0
     #打开数据库连接
     db= pymysql.connect(host="localhost",user="pytest",
         password="pytest123",db="stock",port=3306)
+    dbcount += 1
     # 使用cursor()方法获取操作游标
     cur = db.cursor()
     
@@ -120,38 +173,73 @@ def spider(stnum):
                 print(results)
     except Exception as e:
         raise e
-    # finally:
-    #     db.close()	#关闭连接
+    finally:
+        db.close()	#关闭连接
+        dbcount -= 1
+
+    #打开数据库连接
+    db= pymysql.connect(host="localhost",user="pytest",
+        password="pytest123",db="stock",port=3306)
+    dbcount += 1
+    # 使用cursor()方法获取操作游标
+    cur = db.cursor()
+
+    
+    # temp = 'select * from `%(stock)s(%(name)s)` where Date="%(nian)d-%(yue)02d-%(ri)02d"'%{'stock':stnum['SYMBOL'], 'name' : name, 'nian': yea, 'yue' : 3*sea, 'ri' : day}
+    temp = 'select Date from `%(stock)s(%(name)s)`'%{'stock':stnum['SYMBOL'], 'name' : name}
+    print(temp)
+    cur.execute(temp) 	#执行sql语句
+    sqldate = cur.fetchall()	#获取查询的所有记录
+    # if sqldate:
+    #     # print(sqldate)
+    #     for dateitem in sqldate:
+    #         print(dateitem)
+
     minyea = 2010
     mydate = datetime.now()
     yea = mydate.year
     sea = (mydate.month - 1) // 3 + 1
-    # nowyea = datetime.now().year
-    # for yea in range(nowyea, minyea, -1):
-        # for sea in range(1, 5):
+    datetemp = '20190303'
+    
     while yea > minyea:
         while sea > 0:
-            temp = 'select * from `%(stock)s(%(name)s)` where Date="%(nian)d-%(yue)02d-28"'%{'stock':stnum['SYMBOL'], 'name' : name, 'nian': yea, 'yue' : 3*sea}
-            # print(temp)
-            cur.execute(temp) 	#执行sql语句
-            results = cur.fetchall()	#获取查询的所有记录
-            if results:
-                print("%(stock)s(%(name)s data %(results)s)"%{'stock':stnum['SYMBOL'], 'name' : name, 'nian': yea, 'results' : results})
+            if sea == 1 or sea == 4:
+                day = 31
+            else:
+                day = 30
+            while day > 0:
+                datestr = "%(nian)d%(yue)02d%(ri)02d"%{'nian': yea, 'yue' : 3*sea, 'ri' : day}
+                datetemp = datestr[:4] + '-' + datestr[4:6] + '-' + datestr[6:]
+                if(is_tradeday(datestr) == 1):
+                    break
+                day -= 1
+            nodate = 0
+            for dateitem in sqldate:
+                # print(dateitem[0])
+                if dateitem[0] == datetemp:
+                # print("%(datetemp)s == %(datetemp)s")
+                    print("%(stock)s :%(date1)s count :%(count)d "%{'stock':stnum['SYMBOL'], 'date1': datetemp,'count': dbcount})
+                    nodate = 1
+                    break
+            if nodate:
                 sea -= 1
                 continue
-
+                
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
             temp = "http://quotes.money.163.com/trade/lsjysj_%(stock)s.html?year=%(year)d&season=%(season)d"%{'stock':stnum['SYMBOL'], 'year':yea, 'season':sea}
-            print("request url is %(urll)s"%{'urll' : temp})
+            print("url is %(urll)s\t"%{'urll' : temp})
             logfp.write("request url is %(urll)s"%{'urll' : temp})
             req = urllib.request.Request(url=temp, headers=headers)
             
             try:
-                stockopen = urllib.request.urlopen(req)
+                stockopen = urllib.request.urlopen(req, timeout=10)
                 html =  stockopen.read()
-                soup = BeautifulSoup(html, 'lxml')
-                tag = soup.find('table', {'class': "table_bg001 border_box limit_sale"})
-                data = tag.find_all('td')
+                if html:
+                    soup = BeautifulSoup(html, 'lxml')
+                if soup:
+                    tag = soup.find('table', {'class': "table_bg001 border_box limit_sale"})
+                if tag:
+                    data = tag.find_all('td')
                 stockopen.close()
 
                 sub = 0
@@ -161,15 +249,16 @@ def spider(stnum):
                     break
                 while sub < alllen:
                     # break;
-                    temp = """INSERT INTO `%(stock)s(%(name)s)` \
+                    temp = """REPLACE INTO `%(stock)s(%(name)s)` \
                         (Date, StockPlate, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
                     VALUES \
-                        ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s');""" \
+                        ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s')\
+                            ON DUPLICATE KEY UPDATE Date = '%(Date1)s';""" \
                         %{'stock':stnum['SYMBOL'], 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
                             'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
-                            'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text}
-                    # print(temp[235:])
-                    logfp.write("%(stock)s(%(name)s) inserinfo is %(temp)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : temp})
+                            'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text,'Date1':data[sub].text}
+                    # print(temp)
+                    logfp.write("%(stock)s(%(name)s) inserinfo is %(temp)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : temp[230:]})
                     sub += 11
                     try:
                         cur.execute(temp) 	#执行sql语句
@@ -192,47 +281,48 @@ def spider(stnum):
                 sea -= 1
                 yea = minyea
                 continue
+            except socket.timeout as e:
+                print (type(e) )
+                continue
             sea -= 1
         yea -= 1
         if(sea == 0):
             sea = 4
         if yea <= minyea:
             db.close()	#关闭连接y
+            dbcount -= 1
             logfp.flush()
             break
 
 
-if __name__ == '__main__':    
-    pool = ProcessPoolExecutor(max_workers=16)
-    try:
-        results = list(pool.map(spider, stocklist))
-    except Exception as e:
-        # print 'ConnectionError'
-        print (e)
-        time.sleep(300)
-        results = list(pool.map(spider, stocklist))
-        print(results)
-        logfp.write("ThreadPool exception\n")
-    print("spider over time")
-    logfp.write("spider over\n")
-    logfp.close()
+# if __name__ == '__main__':    
+#     pool = ProcessPoolExecutor(max_workers=8)
+#     try:
+#         results = list(pool.map(spider, stocklist))
+#     except Exception as e:
+#         # print 'ConnectionError'
+#         print (e)
+#         time.sleep(300)
+#         results = list(pool.map(spider, stocklist))
+#         print(results)
+#         logfp.write("ThreadPool exception\n")
+#     print("spider over time")
+#     logfp.write("spider over\n")
+#     logfp.close()
 
-# pool = ThreadPool(16)
-# # results = pool.map(spider, stocklist)
-# try:
-#     results = pool.map(spider, stocklist)
-# except Exception as e:
-#     # print 'ConnectionError'
-#     print (e)
-#     time.sleep(300)
-#     results = pool.map(spider, stocklist)
-#     print(results)
-#     logfp.write("ThreadPool exception\n")
-# pool.close()
-# pool.join()
-
-# db.close()	#关闭连接y
-
-# print("spider over time")
-# logfp.write("spider over\n")
-# logfp.close()
+pool = ThreadPool(16)
+# results = pool.map(spider, stocklist)
+try:
+    results = pool.map(spider, stocklist)
+except Exception as e:
+    # print 'ConnectionError'
+    print (e)
+    time.sleep(300)
+    results = pool.map(spider, stocklist)
+    print(results)
+    logfp.write("ThreadPool exception\n")
+pool.close()
+pool.join()
+print("spider over time")
+logfp.write("spider over\n")
+logfp.close()
