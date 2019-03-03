@@ -52,14 +52,15 @@ try:
     # print(html)
     htmljson = json.loads(html[2:-1])
     # print(htmljson)
-    codelist = htmljson.get('list')
+    stocklist = htmljson.get('list')
     # print(platelist)
-    # for item in stocklist:
-    #     print(item)
-    snum = 0
-    for item in codelist:
-        stocklist[snum] = item
-        snum += 1
+    for item in stocklist:
+        # print(item)
+        logfp.write("%(item)s\n"%{'item':str(item)})
+    # snum = 0
+    # for item in codelist:
+    #     stocklist[snum] = item
+    #     snum += 1
         # print(str(stocklist['snum']))
         # logfp.write("%(item)s\n"%{'item':str(item)})
     #     # print(item)
@@ -78,8 +79,12 @@ except urllib.error.URLError as e:
 except socket.timeout as e:
     print (type(e) )
         
-print(stocklist[0])
-print(stocklist)
+# print(type(stocklist[0]))
+# print(type(stocklist))
+# print(sorted(stocklist.items(), key=lambda d:d[1], reverse = True))
+# print(sorted({'NO':i['NO'] for i in stocklist}.items(), key=lambda a: a[1]))
+# print(sorted(stocklist.items(), key=lambda x: x[1][0], reverse=True))
+# print(sorted(stocklist,key = lambda e:e.__getitem__('NO')))
 endstart = time.time()
 print("get allitem time %(all)ss"%{'all' : endstart - teststart})
 
@@ -131,6 +136,7 @@ def is_tradeday(query_date):
  
 
 def spider(stnum):
+    # print(stnum)
     dbcount = 0
     stockplate = 0
     #打开数据库连接
@@ -295,34 +301,34 @@ def spider(stnum):
             break
 
 
-# if __name__ == '__main__':    
-#     pool = ProcessPoolExecutor(max_workers=8)
-#     try:
-#         results = list(pool.map(spider, stocklist))
-#     except Exception as e:
-#         # print 'ConnectionError'
-#         print (e)
-#         time.sleep(300)
-#         results = list(pool.map(spider, stocklist))
-#         print(results)
-#         logfp.write("ThreadPool exception\n")
-#     print("spider over time")
-#     logfp.write("spider over\n")
-#     logfp.close()
+if __name__ == '__main__':    
+    pool = ProcessPoolExecutor(max_workers=8)
+    try:
+        results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+    except Exception as e:
+        # print 'ConnectionError'
+        print (e)
+        time.sleep(300)
+        results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+        print(results)
+        logfp.write("ThreadPool exception\n")
+    print("spider over time")
+    logfp.write("spider over\n")
+    logfp.close()
 
-pool = ThreadPool(16)
-# results = pool.map(spider, stocklist)
-try:
-    results = pool.map(spider, stocklist)
-except Exception as e:
-    # print 'ConnectionError'
-    print (e)
-    time.sleep(300)
-    results = pool.map(spider, stocklist)
-    print(results)
-    logfp.write("ThreadPool exception\n")
-pool.close()
-pool.join()
-print("spider over time")
-logfp.write("spider over\n")
-logfp.close()
+# pool = ThreadPool(16)
+# # results = pool.map(spider, stocklist)
+# try:
+#     results = pool.map(spider, stocklist)
+# except Exception as e:
+#     # print 'ConnectionError'
+#     print (e)
+#     time.sleep(300)
+#     results = pool.map(spider, stocklist)
+#     print(results)
+#     logfp.write("ThreadPool exception\n")
+# pool.close()
+# pool.join()
+# print("spider over time")
+# logfp.write("spider over\n")
+# logfp.close()
