@@ -2,7 +2,7 @@
 
 from lxml import etree
 from multiprocessing.dummy import Pool as ThreadPool
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Executor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Executor, as_completed
 from functools import partial
 # import requests
 import time
@@ -136,10 +136,11 @@ def is_tradeday(query_date):
         return 0
  
 
-def spider(stnum, update):
-    # print(stnum)
+def spider(stnum):#, update):
+    print(stnum)
     # print(update)
     dbcount = 0
+    update = 0
     stockplate = 0
     #打开数据库连接
     db= pymysql.connect(host="localhost",user="pytest",
@@ -260,8 +261,7 @@ def spider(stnum, update):
                     temp = """REPLACE INTO `%(stock)s(%(name)s)` \
                         (Date, StockPlate, OpenPrice, HighPrice, LowPrice, ClosePrice, DiffrenceValue, DiffrencePercent, Amplitude, Volume, Amount, HandRate) \
                     VALUES \
-                        ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s')\
-                            ON DUPLICATE KEY UPDATE Date = '%(Date1)s';""" \
+                        ('%(Date)s', '%(StockPlate)s', '%(OpenPrice)s', '%(HighPrice)s', '%(LowPrice)s', '%(ClosePrice)s', '%(DiffrenceValue)s', '%(DiffrencePercent)s', '%(Amplitude)s','%(Volume)s', '%(Amount)s', '%(HandRate)s');""" \
                         %{'stock':stnum['SYMBOL'], 'name' : name,'StockPlate':stockplate,'Date':data[sub].text,'OpenPrice':data[sub+1].text,'HighPrice':data[sub+2].text,'LowPrice':data[sub+3].text,'ClosePrice':data[sub+4].text,\
                             'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
                             'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text,'Date1':data[sub].text}
@@ -298,9 +298,6 @@ def spider(stnum, update):
                 if(update == 0):
                     yea = minyea
                     break
-            # else:
-            #     yea = minyea
-            #     break
         yea -= 1
         if(sea == 0):
             sea = 4
@@ -310,39 +307,57 @@ def spider(stnum, update):
             logfp.flush()
             break
 
+sortstocklist = tuple(sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL')))
+# print(sortstocklist)
+# for item in sortstocklist:
+#     print(item)
 
 if __name__ == '__main__':    
-    pool = ProcessPoolExecutor(max_workers=8)
-    try:
-        results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-        # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-    except Exception as e:
-        # print 'ConnectionError'
-        print (e)
-        time.sleep(300)
-        results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-        # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-        print(results)
-        logfp.write("ThreadPool exception\n")
-    print("spider over time")
-    logfp.write("spider over\n")
-    logfp.close()
+    pool = ThreadPoolExecutor(max_workers=16)
+    task_list = [pool.submit(spider, taskitem) for taskitem in sortstocklist]
+    for result in as_completed(task_list):
+        # task_name = task_map.get(result)
+        print(result)
 
-# pool = ThreadPool(16)
-# # results = pool.map(spider, stocklist)
-# try:
-#     results = list(pool.map(partial(spider,update=1),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-#     # results = pool.map(spider, stocklist)
-# except Exception as e:
-#     # print 'ConnectionError'
-#     print (e)
-#     time.sleep(300)
-#     results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-#     # results = pool.map(spider, stocklist)
-#     print(results)
-#     logfp.write("ThreadPool exception\n")
-# pool.close()
-# pool.join()
-# print("spider over time")
-# logfp.write("spider over\n")
-# logfp.close()
+# if __name__ == '__main__':    
+#     pool = ProcessPoolExecutor(max_workers=8)
+#     try:
+#         results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#         # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#     except Exception as e:
+#         # print 'ConnectionError'
+#         print (e)
+#         time.sleep(300)
+#         results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#         # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#         print(results)
+#         logfp.write("ThreadPool exception\n")
+#     print("spider over time")
+#     logfp.write("spider over\n")
+#     logfp.close()
+
+pool = ThreadPool(1)
+# results = pool.map(spider, stocklist)
+try:
+    # results = list(pool.map(partial(spider,update=1),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+    # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
+    results = pool.map(spider, sortstocklist)
+except Exception as e:
+    # print 'ConnectionError'
+    print (e)
+    time.sleep(300)
+    # results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+    # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
+    results = pool.map(spider, sortstocklist)
+    print(results)
+    logfp.write("ThreadPool exception\n")
+pool.close()
+pool.join()
+print("spider over time")
+logfp.write("spider over\n")
+logfp.close()
+
+    # pool = threadpool.ThreadPool(2)
+    # requests = threadpool.makeRequests(hello, func_var)
+    # [pool.putRequest(req) for req in requests]
+    # pool.wait()
