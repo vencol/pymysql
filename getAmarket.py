@@ -3,6 +3,7 @@
 from lxml import etree
 from multiprocessing.dummy import Pool as ThreadPool
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, Executor
+from functools import partial
 # import requests
 import time
 # import sys
@@ -135,8 +136,9 @@ def is_tradeday(query_date):
         return 0
  
 
-def spider(stnum):
+def spider(stnum, update):
     # print(stnum)
+    # print(update)
     dbcount = 0
     stockplate = 0
     #打开数据库连接
@@ -291,6 +293,14 @@ def spider(stnum):
                 print (type(e) )
                 continue
             sea -= 1
+            if(update):
+                update -= 1
+                if(update == 0):
+                    yea = minyea
+                    break
+            # else:
+            #     yea = minyea
+            #     break
         yea -= 1
         if(sea == 0):
             sea = 4
@@ -304,12 +314,14 @@ def spider(stnum):
 if __name__ == '__main__':    
     pool = ProcessPoolExecutor(max_workers=8)
     try:
-        results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+        results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+        # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
     except Exception as e:
         # print 'ConnectionError'
         print (e)
         time.sleep(300)
-        results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+        results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+        # results = list(pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
         print(results)
         logfp.write("ThreadPool exception\n")
     print("spider over time")
@@ -319,12 +331,14 @@ if __name__ == '__main__':
 # pool = ThreadPool(16)
 # # results = pool.map(spider, stocklist)
 # try:
-#     results = pool.map(spider, stocklist)
+#     results = list(pool.map(partial(spider,update=1),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#     # results = pool.map(spider, stocklist)
 # except Exception as e:
 #     # print 'ConnectionError'
 #     print (e)
 #     time.sleep(300)
-#     results = pool.map(spider, stocklist)
+#     results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#     # results = pool.map(spider, stocklist)
 #     print(results)
 #     logfp.write("ThreadPool exception\n")
 # pool.close()
