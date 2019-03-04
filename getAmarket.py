@@ -137,7 +137,7 @@ def is_tradeday(query_date):
  
 
 def spider(stnum):#, update):
-    print(stnum)
+    # print(stnum)
     # print(update)
     dbcount = 0
     update = 0
@@ -307,14 +307,20 @@ def spider(stnum):#, update):
             logfp.flush()
             break
 
-sortstocklist = tuple(sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL')))
+sortstocklist = sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))
 # print(sortstocklist)
 # for item in sortstocklist:
 #     print(item)
 
 if __name__ == '__main__':    
     pool = ThreadPoolExecutor(max_workers=16)
-    task_list = [pool.submit(spider, taskitem) for taskitem in sortstocklist]
+    task_list = []
+    for taskitem in sortstocklist:
+        if(taskitem['SYMBOL'] < '000001' ):
+            print(taskitem['SYMBOL'])
+            continue
+        task_list.append(pool.submit(spider, taskitem))
+    # task_list = [pool.submit(spider, taskitem) for taskitem in sortstocklist]
     for result in as_completed(task_list):
         # task_name = task_map.get(result)
         print(result)
