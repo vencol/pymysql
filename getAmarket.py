@@ -53,8 +53,9 @@ try:
     # print(html)
     htmljson = json.loads(html[2:-1])
     # print(htmljson)
-    stocklist = htmljson.get('list')
+    sortstocklist = htmljson.get('list')
     # print(platelist)
+    stocklist = sorted(sortstocklist,key = lambda e:e.__getitem__('SYMBOL'))
     for item in stocklist:
         # print(item)
         logfp.write("%(item)s\n"%{'item':str(item)})
@@ -307,7 +308,6 @@ def spider(stnum):#, update):
             logfp.flush()
             break
 
-sortstocklist = sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))
 # print(sortstocklist)
 # for item in sortstocklist:
 #     print(item)
@@ -315,12 +315,13 @@ sortstocklist = sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))
 if __name__ == '__main__':    
     pool = ThreadPoolExecutor(max_workers=16)
     task_list = []
-    for taskitem in sortstocklist:
-        if(taskitem['SYMBOL'] < '000001' ):
+    for taskitem in stocklist:
+#        if(taskitem['SYMBOL'] < '000001' ):
+        if(int(str(taskitem['SYMBOL']), 10) < 2 ):
             print(taskitem['SYMBOL'])
             continue
         task_list.append(pool.submit(spider, taskitem))
-    # task_list = [pool.submit(spider, taskitem) for taskitem in sortstocklist]
+    # task_list = [pool.submit(spider, taskitem) for taskitem in stocklist]
     for result in as_completed(task_list):
         # task_name = task_map.get(result)
         print(result)
