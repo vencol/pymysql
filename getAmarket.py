@@ -32,7 +32,6 @@ import os
 # importlib.reload(sys)
 
 stocklist = {}
-teststart = time.time()
 
 # headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'}
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/2010010 Firefox/62.0'}
@@ -45,7 +44,7 @@ req = urllib.request.Request(url=temp, headers=headers)
 abs_dir = os.path.dirname(os.path.abspath(__file__)) + '\\amarket_log.txt'
 print(abs_dir)
 logfp = open(abs_dir, "w")
-logfp.write("start the A market get data program\n")
+logfp.write("start the A market get data program at %(time)s\n"%{'time' : time.strftime("%H:%M:%S")})
 
 try:
     stockopen = urllib.request.urlopen(req, timeout=10)
@@ -87,8 +86,6 @@ except socket.timeout as e:
 # print(sorted({'NO':i['NO'] for i in stocklist}.items(), key=lambda a: a[1]))
 # print(sorted(stocklist.items(), key=lambda x: x[1][0], reverse=True))
 # print(sorted(stocklist,key = lambda e:e.__getitem__('NO')))
-endstart = time.time()
-print("get allitem time %(all)ss"%{'all' : endstart - teststart})
 
 def restoreNumber(numStr):
     pattern=re.compile('\D')
@@ -141,7 +138,7 @@ def spider(stnum):#, update):
     # print(stnum)
     # print(update)
     dbcount = 0
-    update = 0
+    update = 1
     stockplate = 0
     #打开数据库连接
     db= pymysql.connect(host="localhost",user="pytest",
@@ -212,6 +209,7 @@ def spider(stnum):#, update):
     datetemp = '20190303'
     
     while yea > minyea:
+        logfp.write("%(stock)s(%(name)s) inserinfo in %(temp)d\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : yea})
         while sea > 0:
             if sea == 1 or sea == 4:
                 day = 31
@@ -238,7 +236,7 @@ def spider(stnum):#, update):
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
             temp = "http://quotes.money.163.com/trade/lsjysj_%(stock)s.html?year=%(year)d&season=%(season)d"%{'stock':stnum['SYMBOL'], 'year':yea, 'season':sea}
             print("url is %(urll)s\t"%{'urll' : temp})
-            logfp.write("request url is %(urll)s"%{'urll' : temp})
+            logfp.write("request url is %(urll)s\n"%{'urll' : temp})
             req = urllib.request.Request(url=temp, headers=headers)
             
             try:
@@ -267,7 +265,7 @@ def spider(stnum):#, update):
                             'DiffrenceValue':data[sub+5].text,'DiffrencePercent':data[sub+6].text,'Amplitude':data[sub+9].text,\
                             'Volume':restoreNumber(data[sub+7].text),'Amount':restoreNumber(data[sub+8].text),'HandRate':data[sub+10].text,'Date1':data[sub].text}
                     # print(temp)
-                    logfp.write("%(stock)s(%(name)s) inserinfo is %(temp)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : temp[230:]})
+                    # logfp.write("%(stock)s(%(name)s) inserinfo is %(temp)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : temp[230:]})
                     sub += 11
                     try:
                         cur.execute(temp) 	#执行sql语句
@@ -305,6 +303,7 @@ def spider(stnum):#, update):
         if yea <= minyea:
             db.close()	#关闭连接y
             dbcount -= 1
+            logfp.write("%(stock)s(%(name)s) over in %(nian)d%(yue)02d%(ri)02d at %(time)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'nian': yea, 'yue' : 3*sea, 'ri' : day,'time' : time.strftime("%H:%M:%S")})
             logfp.flush()
             break
 
@@ -317,7 +316,7 @@ if __name__ == '__main__':
     task_list = []
     for taskitem in stocklist:
 #        if(taskitem['SYMBOL'] < '000001' ):
-        if(int(str(taskitem['SYMBOL']), 10) < 2 ):
+        if(int(str(taskitem['SYMBOL']), 10) < 603995 ):
             print(taskitem['SYMBOL'])
             continue
         task_list.append(pool.submit(spider, taskitem))
@@ -343,26 +342,26 @@ if __name__ == '__main__':
 #     logfp.write("spider over\n")
 #     logfp.close()
 
-pool = ThreadPool(1)
-# results = pool.map(spider, stocklist)
-try:
-    # results = list(pool.map(partial(spider,update=1),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-    # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
-    results = pool.map(spider, sortstocklist)
-except Exception as e:
-    # print 'ConnectionError'
-    print (e)
-    time.sleep(300)
-    # results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
-    # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
-    results = pool.map(spider, sortstocklist)
-    print(results)
-    logfp.write("ThreadPool exception\n")
-pool.close()
-pool.join()
-print("spider over time")
-logfp.write("spider over\n")
-logfp.close()
+# pool = ThreadPool(1)
+# # results = pool.map(spider, stocklist)
+# try:
+#     # results = list(pool.map(partial(spider,update=1),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#     # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
+#     results = pool.map(spider, sortstocklist)
+# except Exception as e:
+#     # print 'ConnectionError'
+#     print (e)
+#     time.sleep(300)
+#     # results = list(pool.map(partial(spider,update=0),sorted(stocklist,key = lambda e:e.__getitem__('SYMBOL'))))
+#     # results = pool.map(spider, sorted(stocklist,key = lambda e:e.__getitem__('NO')))
+#     results = pool.map(spider, sortstocklist)
+#     print(results)
+#     logfp.write("ThreadPool exception\n")
+# pool.close()
+# pool.join()
+# print("spider over time")
+# logfp.write("spider over\n")
+# logfp.close()
 
     # pool = threadpool.ThreadPool(2)
     # requests = threadpool.makeRequests(hello, func_var)
