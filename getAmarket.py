@@ -316,7 +316,7 @@ if __name__ == '__main__':
     task_list = []
     for taskitem in stocklist:
 #        if(taskitem['SYMBOL'] < '000001' ):
-        if(int(str(taskitem['SYMBOL']), 10) < 603995 ):
+        if(int(str(taskitem['SYMBOL']), 10) < 0 ):
             print(taskitem['SYMBOL'])
             continue
         task_list.append(pool.submit(spider, taskitem))
