@@ -37,7 +37,8 @@ stocklist = {}
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/2010010 Firefox/62.0'}
 # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
 # temp = "http://quotes.money.163.com/old/#query=leadIndustry&DataType=industryPlate&sort=PERCENT&order=desc&count=100&page=0"
-temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA&fields=NO%2CSYMBOL%2CNAME&sort=PERCENT&order=desc&count=3600&type=query'
+# temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA&fields=NO%2CSYMBOL%2CNAME&sort=PERCENT&order=desc&count=3600&type=query'
+temp = 'http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA&fields=NAME%2CSYMBOL&count=5000&type=query'
 req = urllib.request.Request(url=temp, headers=headers)
 
 # abs_dir = "F:\\code\\demo\\python\\pymysql\\log.txt"
@@ -142,15 +143,16 @@ def spider(stnum):#, update):
     stockplate = 0
     #打开数据库连接
     db= pymysql.connect(host="localhost",user="pytest",
-        password="pytest123",db="stock",port=3306)
+        password="pytest123",db="stock",port=3306, charset='utf8')
     dbcount += 1
     # 使用cursor()方法获取操作游标
     cur = db.cursor()
     
     name = stnum['NAME'].encode('utf-8').decode('unicode_escape')
+    # name = "国农科技"
     try:
         temp = "select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'stock\' and TABLE_NAME=\'%(stock)s(%(name)s)\'"%{'stock' : stnum['SYMBOL'], 'name' : name} 	#执行sql语句
-        # print(temp)    
+        print(temp)    
         cur.execute(temp) 	#执行sql语句
         results = cur.fetchall()	#获取查询的所有记录
         # print(results)
@@ -197,6 +199,7 @@ def spider(stnum):#, update):
     print(temp)
     cur.execute(temp) 	#执行sql语句
     sqldate = cur.fetchall()	#获取查询的所有记录
+
     # if sqldate:
     #     # print(sqldate)
     #     for dateitem in sqldate:
@@ -206,10 +209,11 @@ def spider(stnum):#, update):
     mydate = datetime.now()
     yea = mydate.year
     sea = (mydate.month - 1) // 3 + 1
-    datetemp = '20190303'
+    datetemp = '20190928'
     
     while yea > minyea:
-        logfp.write("%(stock)s(%(name)s) inserinfo in %(temp)d\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : yea})
+        logfp.write("%(stock)s(s) inserinfo in %(temp)d\n"%{'stock':stnum['SYMBOL'],'temp' : yea})
+        # logfp.write("%(stock)s(%(name)s) inserinfo in %(temp)d\n"%{'stock':stnum['SYMBOL'], 'name' : name,'temp' : yea})
         while sea > 0:
             if sea == 1 or sea == 4:
                 day = 31
@@ -223,7 +227,7 @@ def spider(stnum):#, update):
                 day -= 1
             nodate = 0
             for dateitem in sqldate:
-                # print(dateitem[0])
+                print(dateitem[0])
                 if dateitem[0] == datetemp:
                 # print("%(datetemp)s == %(datetemp)s")
                     print("%(stock)s :%(date1)s count :%(count)d "%{'stock':stnum['SYMBOL'], 'date1': datetemp,'count': dbcount})
@@ -236,7 +240,7 @@ def spider(stnum):#, update):
             # temp = 'http://quotes.money.163.com/trade/lsjysj_002402.html?year=2019&season=1'
             temp = "http://quotes.money.163.com/trade/lsjysj_%(stock)s.html?year=%(year)d&season=%(season)d"%{'stock':stnum['SYMBOL'], 'year':yea, 'season':sea}
             print("url is %(urll)s\t"%{'urll' : temp})
-            logfp.write("request url is %(urll)s\n"%{'urll' : temp})
+            # logfp.write("request url is %(urll)s\n"%{'urll' : temp})
             req = urllib.request.Request(url=temp, headers=headers)
             
             try:
@@ -293,7 +297,8 @@ def spider(stnum):#, update):
                 continue
             sea -= 1
             if(update):
-                update -= 1
+                if(yea <= minyea):
+                    update -= 1
                 if(update == 0):
                     yea = minyea
                     break
@@ -303,7 +308,7 @@ def spider(stnum):#, update):
         if yea <= minyea:
             db.close()	#关闭连接y
             dbcount -= 1
-            logfp.write("%(stock)s(%(name)s) over in %(nian)d%(yue)02d%(ri)02d at %(time)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'nian': yea, 'yue' : 3*sea, 'ri' : day,'time' : time.strftime("%H:%M:%S")})
+            # logfp.write("%(stock)s(%(name)s) over in %(nian)d%(yue)02d%(ri)02d at %(time)s\n"%{'stock':stnum['SYMBOL'], 'name' : name,'nian': yea, 'yue' : 3*sea, 'ri' : day,'time' : time.strftime("%H:%M:%S")})
             logfp.flush()
             break
 
@@ -312,7 +317,7 @@ def spider(stnum):#, update):
 #     print(item)
 
 if __name__ == '__main__':    
-    pool = ThreadPoolExecutor(max_workers=16)
+    pool = ThreadPoolExecutor(max_workers=1)
     task_list = []
     for taskitem in stocklist:
 #        if(taskitem['SYMBOL'] < '000001' ):
