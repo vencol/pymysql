@@ -62,7 +62,7 @@ print(logpath)
 logfp = open(logpath, "w")
 logfp.write("start the A market get data program at %(time)s\n"%{'time' : time.strftime("%H:%M:%S")})
 begintime = time.time()
-g_datapath = g_datapath + "\\csvdata"
+g_datapath = g_datapath + "\\acsvdata"
 if (os.path.exists(g_datapath) == False):
     os.makedirs(g_datapath)
 
@@ -258,7 +258,7 @@ def getStockToSql(pdStock, datanow, stockname):
         elif hasattr(e, 'reason'):
             print("e.reason")
             print(e.reason)
-        logfp.write("urllib.error.URLError\n")
+        logfp.write("%(stock)s urllib.error.URLError\n"%{'stock' : stockname})
         g_pdSortStockList.loc[pdStock.name, 'DATE'] = None
         pdStock.loc['DATE'] = None
         return pdStock
@@ -306,7 +306,6 @@ def getStockToSql(pdStock, datanow, stockname):
         logfp.write("update %(stock)s success\n"%{'stock' : stockname})
         logfp.flush() 
     else:
-        # pdStock['DATE'] = None
         g_pdSortStockList.loc[pdStock.name, 'DATE'] = None
         pdStock.loc['DATE'] = None
         logfp.write("warning %(stock)s fail with none data\n"%{'stock' : stockname})
