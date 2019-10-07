@@ -393,7 +393,7 @@ def task_loop():
                 print(ret)
                 logfp.write(ret)
                 logfp.flush()
-                # g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
+                g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
             else:
                 logfp.write(f)
                 logfp.flush() 
