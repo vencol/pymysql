@@ -25,9 +25,9 @@ import urllib.error
 import urllib.request
 
 
-# import numpy as np
 # import tushare as ts
 #         opendaylist = ts.trade_cal()
+import numpy as np
 import pandas as pd
 # pd.set_option('display.max_rows',None)
 # pd.set_option('display.max_rows',1000)
@@ -129,7 +129,9 @@ def getMarket(market):
         sortstocklist = htmljson.get('list')
         for stdict in sortstocklist:
             stdict['NAME'] = stdict['NAME'].encode('utf-8').decode('unicode_escape').lower().replace('*', '_')
-        pdSortStockList = pd.DataFrame(sortstocklist, columns=['SYMBOL' , 'NAME', 'PRICE', 'VOLUME' ])
+        # basetype = np.dtype([('SYMBOL', np.str_, 6), ('NAME', np.str_, 20), ('PRICE', np.str_, 10), ('VOLUME', np.float64, 1)])
+        pdSortStockList = pd.DataFrame(sortstocklist, columns=['SYMBOL' , 'NAME', 'PRICE', 'VOLUME'], dtype=str)
+                        #  ,dtype = basetype)
         # del pdSortStockList['PRICE']
         # del pdSortStockList['NO']
         pdSortStockList.rename(columns={'PRICE':'DATE'},inplace=True) 
@@ -259,8 +261,9 @@ def getStockToSql(pdStock, datanow, stockname):
             print("e.reason")
             print(e.reason)
         logfp.write("%(stock)s urllib.error.URLError\n"%{'stock' : stockname})
-        g_pdSortStockList.loc[pdStock.name, 'DATE'] = None
-        pdStock.loc['DATE'] = None
+        logfp.flush() 
+        g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_stockBeginDate
+        # pdStock.loc['DATE'] = g_stockBeginDate
         return pdStock
     except socket.timeout:
         count = 1
@@ -271,15 +274,27 @@ def getStockToSql(pdStock, datanow, stockname):
             except socket.timeout:
                 err_info = 'Reloading for %d time'%count if count == 1 else 'Reloading for %d times'%count
                 print(err_info)
-                logfp.write("update %(stock)s count %(err)s\n"%{'stock' : stockname, 'err' : err_info})
+                logfp.write("update %(stock)s timeout count %(err)s\n"%{'stock' : stockname, 'err' : err_info})
                 logfp.flush() 
                 count += 1
+            except urllib.error.URLError as e:
+                if hasattr(e, 'code'):
+                    print("e.code")
+                    print(e.code)
+                elif hasattr(e, 'reason'):
+                    print("e.reason")
+                    print(e.reason)
+                logfp.write("%(stock)s urllib.error.URLError\n"%{'stock' : stockname})
+                logfp.flush() 
+                g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_stockBeginDate
+                # pdStock.loc['DATE'] = g_stockBeginDate
+                return pdStock
         if count > 5:
             print("download job failed!\n")
             logfp.write("update %(stock)s download job failed\n"%{'stock' : stockname})
             logfp.flush() 
-            g_pdSortStockList.loc[pdStock.name, 'DATE'] = None
-            pdStock.loc['DATE'] = None
+            g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_stockBeginDate
+            # pdStock.loc['DATE'] = g_stockBeginDate
             return pdStock
     stockdata = pd.read_csv(abs_dir, encoding='gbk', nrows=1)
     # print(stockdata)
@@ -292,6 +307,7 @@ def getStockToSql(pdStock, datanow, stockname):
         # del stockdata['前收盘']
         # del stockdata['流通市值']
         # del stockdata['股票代码']
+        # stockdata = stockdata.drop(['名称', '前收盘', '流通市值', '股票代码'], axis = 1)
         # stockdata.rename(columns={'日期':'Date', '收盘价':'ClosePrise', '最高价':'HighPrise', '最低价':'LowPrise', '开盘价':'OpenPrise', 
         #                         '涨跌额':'UpDownPrice', '涨跌幅':'UpDownRange', '换手率':'TurnoverRate', 
         #                         '成交量':'Volume', '成交金额':'AMOUNT', '总市值':'MarketValue'},inplace=True) 
@@ -302,22 +318,22 @@ def getStockToSql(pdStock, datanow, stockname):
         #     stockdata.to_sql(stockname, con=engine, if_exists='append', index=False)  
         # pdStock['DATE'] = datanow
         g_pdSortStockList.loc[pdStock.name, 'DATE'] = datanow
-        pdStock.loc['DATE'] = datanow
-        logfp.write("update %(stock)s success\n"%{'stock' : stockname})
-        logfp.flush() 
+        # pdStock.loc['DATE'] = datanow
+        # logfp.write("update %(stock)s success\n"%{'stock' : stockname})
+        # logfp.flush() 
     else:
-        g_pdSortStockList.loc[pdStock.name, 'DATE'] = None
-        pdStock.loc['DATE'] = None
+        g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_stockBeginDate
+        # pdStock.loc['DATE'] = g_stockBeginDate
         logfp.write("warning %(stock)s fail with none data\n"%{'stock' : stockname})
         logfp.flush() 
 
 
 
-def spider(pdStock):
+def spider(item):
     # print(pdStock)#.type)
     # print(pdStock['SYMBOL'])
     # nonlocal g_pdSortStockList
-    # pdStock = slist.loc[item]
+    pdStock = g_pdSortStockList.ix[item]
     stockname = str(pdStock['SYMBOL']) + str(pdStock['NAME'])
     abs_dir = g_datapath + "\\%(stockname)s.csv"%{'stockname' : stockname}
     # print(abs_dir)
@@ -327,51 +343,57 @@ def spider(pdStock):
         data = pd.read_csv(abs_dir, encoding='gbk', nrows=1)
         # print(type(data))
         if ( data.empty == False):
-            if( (pdStock['VOLUME'] == 0)  or  (pdStock['DATE'] == g_lastTraDate) ):
+            if(pdStock['VOLUME'] == 0) or ( data['日期'][0] == g_lastTraDate ):
                 edatanow = 0
         
     # print(datanow +"---" + str(edatanow))
     if(edatanow):
-        logfp.write("begin update %(symbol)s \n"%{'symbol':stockname})
-        logfp.flush()
+        # logfp.write("begin update %(symbol)s \n"%{'symbol':stockname})
+        # logfp.flush()
         getStockToSql(pdStock, g_lastTraDate, stockname)
     else:
+        logfp.write(" %(symbol)s num %(num)s noneed update \n"%{'symbol':stockname, 'num' : pdStock.name})
+        logfp.flush()
         g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_lastTraDate
-        pdStock.loc['DATE'] = g_lastTraDate
+        # pdStock.loc['DATE'] = g_lastTraDate
     
+    # print(g_pdSortStockList)
     return pdStock
 
-
-if __name__ == '__main__':   
+def task_loop():
     pool = ThreadPoolExecutor(max_workers=32)
     allitem = g_pdSortStockList.index.size-1
     nowitem = 0
     task_list = []
     # task_list.append(pool.submit(taskfortime, tasktime))
+    # for taskitem in range (0, allitem, 1):
     for taskitem in range (allitem, -1, -1):
         # if g_pdSortStockList.loc[taskitem]['SYMBOL'][0] == '6':#6：沪A 9：沪B  3?0：深A 2:深B
-        task_list.append(pool.submit(spider, g_pdSortStockList.loc[taskitem, {'SYMBOL', 'NAME', 'DATE', 'VOLUME'}]))
-    # task_list = list(pool.map(spider,  g_pdSortStockList.loc[:, {'SYMBOL', 'NAME', 'DATE', 'VOLUME'}]))
+        task_list.append(pool.submit(spider, taskitem))
+        # task_list.append(pool.submit(spider, g_pdSortStockList.loc[taskitem, {'SYMBOL', 'NAME', 'DATE', 'VOLUME'}]))
     # wait(task_list, timeout=60, return_when=FIRST_COMPLETED)
     for f in as_completed(task_list):
         f_ret = f.result()
         nowitem += 1
         print("all\tnow\tpercent\ttime(s)")
-        print("%(all)s\t%(now)s\t%(per).05s%%\t%(time)05ss"%{'all': allitem, 'now' : nowitem, 'per' : 100*nowitem/allitem, 'time' : (time.time()-begintime)})
+        print("%(all)s\t%(now)s\t%(per).05s%%\t%(time).05ss"%{'all': allitem, 'now' : nowitem, 'per' : 100*nowitem/allitem, 'time' : (time.time()-begintime)})
         
-        logfp.write("%(all)s\t%(now)s\t%(per).05s%%\t%(time)05ss"%{'all': allitem, 'now' : nowitem, 'per' : 100*nowitem/allitem, 'time' : (time.time()-begintime)})
+        logfp.write("%(all)s\t%(now)s\t%(per).05s%%\t%(time).05ss"%{'all': allitem, 'now' : nowitem, 'per' : 100*nowitem/allitem, 'time' : (time.time()-begintime)})
         logfp.flush() 
         try:
             ret = f.done()
             if ret:
                 if pd.isnull(f_ret['DATE']):
-                    ret = "finish %(number)s%(name)s fail at %(time)s %(use)05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
+                    ret = "finish %(number)s%(name)s fail at %(time)s use %(use).05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
                 else:
-                    ret = "finish %(number)s%(name)s done at %(time)s %(use)05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
+                    if  (f_ret['DATE'] == g_lastTraDate):
+                        ret = "finish %(number)s%(name)s done at %(time)s use %(use).05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
+                    else:
+                        ret = "finish %(number)s%(name)s done at %(time)s use %(use).05ss %(data)s\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime), 'data':f_ret['DATE']}
                 print(ret)
                 logfp.write(ret)
                 logfp.flush()
-                g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
+                # g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
             else:
                 logfp.write(f)
                 logfp.flush() 
@@ -381,6 +403,15 @@ if __name__ == '__main__':
             print(ret)
             logfp.write(ret)
             logfp.flush() 
+
+
+if __name__ == '__main__':   
+    # taskloop = 0
+    # while( g_pdSortStockList[ 'DATE'].isnull().empty == False ):
+    task_loop()
+        # taskloop += 1
+        # if taskloop >= 3:
+        #     break
             
 g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
 logfp.write("A market get data program end at %(time)s use %(use).05ss\n"%{'time' : time.strftime("%H:%M:%S"), 'use' :(time.time()-begintime)})
@@ -391,4 +422,6 @@ logfp.write("%(symbol)s \n"%{'symbol':g_pdSortStockList[ g_pdSortStockList[ 'DAT
 logfp.flush()
 pd.set_option('display.max_rows',10 )
 logfp.close()
+# sys.exit()
+os._exit(1)
 # engine.
