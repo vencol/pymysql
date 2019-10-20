@@ -226,7 +226,9 @@ g_lastTraDate = getStockTradeDate()
 def getStockToSql(pdStock, datanow, stockname):
     # print(type(pdStock['SYMBOL']))
     # print(str(pdStock['SYMBOL']))
-    temp = "code=1%(code)06s&start=%(st)s&end=%(end)s"%{'code' : pdStock['SYMBOL'], 'st' : g_stockBeginDate.replace('-', ''), 'end' : datanow.replace('-', '')}
+    # print(pdStock)
+    # print(pdStock['DATE'] == datanow)
+    temp = "code=1%(code)06s&start=%(st)s&end=%(end)s"%{'code' : pdStock['SYMBOL'], 'st' : pdStock['DATE'].replace('-', ''), 'end' : datanow.replace('-', '')}
     if pdStock['SYMBOL'][0] == '6':
         temp = temp.replace('code=1', 'code=0')
     temp = ("http://quotes.money.163.com/service/chddata.html?" + temp +
@@ -235,13 +237,16 @@ def getStockToSql(pdStock, datanow, stockname):
     logfp.write("%(stockname)s get "%{'stockname' : stockname} + temp + '\n')
     logfp.flush()
 
-    
-
     abs_dir = g_datapath + "\\%(stockname)s.csv"%{'stockname' : stockname}
+    # temp_dir = g_datapath + "\\temp_%(stockname)s.csv"%{'stockname' : stockname}
+    get_dir = abs_dir
+    # if (os.path.exists(abs_dir)):
+    #     get_dir = temp_dir
+    socket.setdefaulttimeout(60)
+
     # print(abs_dir)
     # if (os.path.exists(abs_dir)):
     #     os.remove(abs_dir)
-    # socket.setdefaulttimeout(60)
 
 #     getfinish = time.mktime(datetime.datetime.now().timetuple()) + 30
 #     print(getfinish)
@@ -250,9 +255,9 @@ def getStockToSql(pdStock, datanow, stockname):
 #         per = 100.0 * blocknum * blocksize / totalsize
 #         if per >= 100 :
 #             getfinish = 0
-    socket.setdefaulttimeout(30)
+    # socket.setdefaulttimeout(30)
     try:
-        urllib.request.urlretrieve(temp, abs_dir)#, getCsvCallback) 
+        urllib.request.urlretrieve(temp, get_dir)#, getCsvCallback) 
     except urllib.error.URLError as e:
         if hasattr(e, 'code'):
             print("e.code")
@@ -269,7 +274,7 @@ def getStockToSql(pdStock, datanow, stockname):
         count = 1
         while count <= 5:
             try:
-                urllib.request.urlretrieve(temp, abs_dir)#, getCsvCallback)                                              
+                urllib.request.urlretrieve(temp, get_dir)#, getCsvCallback)                                              
                 break
             except socket.timeout:
                 err_info = 'Reloading for %d time'%count if count == 1 else 'Reloading for %d times'%count
@@ -296,9 +301,21 @@ def getStockToSql(pdStock, datanow, stockname):
             g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_stockBeginDate
             # pdStock.loc['DATE'] = g_stockBeginDate
             return pdStock
-    stockdata = pd.read_csv(abs_dir, encoding='gbk', nrows=1)
+
+    # if temp_dir == get_dir:
+    #     stockdata = pd.read_csv(abs_dir, encoding='gbk')
+    #     tempstockdata = pd.read_csv(temp_dir, encoding='gbk')
+    #     stockdata = pd.concat([tempstockdata, stockdata],ignore_index = True)
+    #     # print(stockdata)
+    #     stockdata.to_csv(abs_dir, mode='w', encoding='gbk', index=0)#, header=False)
+    # if (os.path.exists(temp_dir)):
+    #     os.remove(temp_dir)
     # print(stockdata)
     # print(str(stockdata.index.size))
+
+    stockdata = pd.DataFrame()
+    if os.path.exists(abs_dir):
+        stockdata = pd.read_csv(abs_dir, encoding='gbk', nrows=1)
     if ( stockdata.empty == False):
         # stockname = stockdata.loc[0, '名称'].lower().replace('*', '_')
         # stocksymbol = stockdata.loc[0, '股票代码'][1:]
@@ -339,10 +356,12 @@ def spider(item):
     # print(abs_dir)
     # print("spider %(stock)s\n"%{'stock' : stockname})
     edatanow = -1
+    pdStock.loc['DATE'] = g_stockBeginDate
     if (os.path.exists(abs_dir)):
         data = pd.read_csv(abs_dir, encoding='gbk', nrows=1)
         # print(type(data))
         if ( data.empty == False):
+            # pdStock.loc['DATE'] = data['日期'][0]
             if(pdStock['VOLUME'] == 0) or ( data['日期'][0] == g_lastTraDate ):
                 edatanow = 0
         
@@ -355,7 +374,7 @@ def spider(item):
         logfp.write(" %(symbol)s num %(num)s noneed update \n"%{'symbol':stockname, 'num' : pdStock.name})
         logfp.flush()
         g_pdSortStockList.loc[pdStock.name, 'DATE'] = g_lastTraDate
-        # pdStock.loc['DATE'] = g_lastTraDate
+        pdStock.loc['DATE'] = g_lastTraDate
     
     # print(g_pdSortStockList)
     return pdStock
@@ -386,10 +405,7 @@ def task_loop():
                 if pd.isnull(f_ret['DATE']):
                     ret = "finish %(number)s%(name)s fail at %(time)s use %(use).05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
                 else:
-                    if  (f_ret['DATE'] == g_lastTraDate):
-                        ret = "finish %(number)s%(name)s done at %(time)s use %(use).05ss\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime)}
-                    else:
-                        ret = "finish %(number)s%(name)s done at %(time)s use %(use).05ss %(data)s\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime), 'data':f_ret['DATE']}
+                    ret = "finish %(number)s%(name)s done at %(time)s use %(use).05ss %(data)s\n"%{'number' : f_ret['SYMBOL'], 'name' : f_ret['NAME'], 'time' : time.strftime("%H:%M:%S"), 'use' : (time.time()-begintime), 'data':f_ret['DATE']}
                 print(ret)
                 logfp.write(ret)
                 logfp.flush()
