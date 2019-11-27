@@ -121,6 +121,8 @@ def getMarket(market):
                     temp = "http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA" + \
                             "%3BGEM%3Atrue%3BNODEAL%3Afalse&fields=NO%2CNAME%2CSYMBOL%2CVOLUME&sort=SYMBOL&order=asc&count=5000&type=query"
     print(temp)
+    logfp.write(temp)
+    logfp.flush()
     req = urllib.request.Request(url=temp, headers=headers)
     try:
         stockopen = urllib.request.urlopen(req, timeout=10)
@@ -160,17 +162,18 @@ def getMarket(market):
 # data = pd.read_sql_query("select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=\'%(db)s\' and TABLE_NAME=\'000000amarket\'"%{'db' : g_dbName},con = engine)
 
 print(os.path.getsize(g_stockDataPath))
-if (os.path.getsize(g_stockDataPath) > 13096):
-    g_pdSortStockList = pd.read_csv(g_stockDataPath, dtype={'SYMBOL' : str, 'NAME' : str, 'PRICE' : str, 'VOLUME' : int})#, encoding='gbk')
-    if(g_pdSortStockList.empty):
-    # if(1):
-        g_pdSortStockList = getMarket('A')
-    # else:
-    #     # g_pdSortStockList = pd.read_sql_query('select * from `000000Amarket`',con = engine)
-    #     if g_pdSortStockList.empty:
-    #         g_pdSortStockList = getMarket('A')
-else:
-    g_pdSortStockList = getMarket('A')
+g_pdSortStockList = getMarket('A')
+# if (os.path.getsize(g_stockDataPath) > 13096):
+#     g_pdSortStockList = pd.read_csv(g_stockDataPath, dtype={'SYMBOL' : str, 'NAME' : str, 'PRICE' : str, 'VOLUME' : int})#, encoding='gbk')
+#     if(g_pdSortStockList.empty):
+#     # if(1):
+#         g_pdSortStockList = getMarket('A')
+#     # else:
+#     #     # g_pdSortStockList = pd.read_sql_query('select * from `000000Amarket`',con = engine)
+#     #     if g_pdSortStockList.empty:
+#     #         g_pdSortStockList = getMarket('A')
+# else:
+#     g_pdSortStockList = getMarket('A')
     
 # print(g_pdSortStockList)
 # g_pdSortStockList.to_csv(g_stockDataPath, index=False) 
