@@ -62,13 +62,25 @@ class WorkObject(QObject):
                 child = QTreeWidgetItem(UpParent)
                 child.setText(0, codename)
 
-    def treeInitWEork(self, listdata):
+    def treeInitWorker(self, listdata):
         print("this is listdata"  )
-        AllStockData = listdata[0]
+        tree = listdata[0]
+
+        # ItData = stock_IdentifyType(0)
+        # while True:
+        #     try:
+        #         chunk = ItData.get_chunk(100)
+        #         self.addTreeData(chunk.loc[chunk.index.values[0]], tree)
+        #     except StopIteration:
+        #         print ("market Iteration is stopped.")
+        #         break
+
+        AllStockData = stock_IdentifyType(1)
         for i in range(0, len(AllStockData)):
             chunk = AllStockData.loc[i]
-            self.addTreeData(chunk, listdata[1])
+            self.addTreeData(chunk, tree)
 
+        tree.collapseAll()
         self.signal_Quit.emit( )		
 
 class LogicWindow(QMainWindow, Ui_MainWindow):
@@ -213,17 +225,18 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         UpParent.setText(0, "科创板")
         UpParent = QTreeWidgetItem(self.treeWidget)
         UpParent.setText(0, "创业板")
-        self.treeWidget.itemClicked['QTreeWidgetItem*','int'].connect(self.treeItemClick)
-        
-        self.AllStockData = stock_IdentifyType(1)
+        # self.treeWidget.itemClicked['QTreeWidgetItem*','int'].connect(self.treeItemClick)
+        self.treeWidget.currentItemChanged['QTreeWidgetItem*','QTreeWidgetItem*'].connect(self.treeItemClick)
+
         datalist=[]
-        datalist.append(self.AllStockData)
+        # self.AllStockData = stock_IdentifyType(1)
+        # datalist.append(self.AllStockData)
         datalist.append(self.treeWidget)
         self.WorkThread=QThread()
         self.Worker=WorkObject()
         self.Worker.moveToThread(self.WorkThread)
         self.WorkThread.started.connect(self.Worker.mainWorker)
-        self.signal_StartTreeInitWEork.connect(self.Worker.treeInitWEork)
+        self.signal_StartTreeInitWEork.connect(self.Worker.treeInitWorker)
         self.Worker.signal_Quit.connect(self.WorkQuit)
         self.WorkThread.start()
         self.signal_StartTreeInitWEork.emit(datalist)
@@ -235,6 +248,9 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
     def treeItemClick(self,item,n):
         print("this is item : " + item.text(n) + "num is : " + str(n))
         self.lineEdit_StockCode.setText(item.text(n))
+    def treeItemChange(self,item,itempre):
+        print("this is item : " + item.text(0) + "num is : " + str(0))
+        self.lineEdit_StockCode.setText(item.text(0))
 
         
 
