@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
+import time
 from Ui_mainwindow import Ui_MainWindow
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QAction, QTreeWidgetItem, QCompleter#, QBrush, QColor
-from PyQt5.QtCore import pyqtSignal, QDate, QStringListModel
+from PyQt5.QtCore import pyqtSignal, QDate, QStringListModel, QThread, QObject
 
 import numpy as np
 import pandas as pd
@@ -13,10 +14,68 @@ import _locale
 _locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
 
 # http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA%3BEXCHANGE%3ACNSESH&fields=SYMBOL&count=5000&type=query
+class WorkObject(QObject):
+    signal_Quit =pyqtSignal()
+
+    def __init__(self,parent=None):
+        super(WorkObject, self).__init__(parent)
+        self.startType = 0
+
+    def mainWorker(self):
+        if self.startType == 0:
+            time.sleep(0.1)
+        
+    def addTreeData(self, chunk, treeWidget):      
+        codename = "%(code)06d"%{'code':chunk.loc['SYMBOL']}
+        tlist=[stock_CodeIdentify(codename), codename, chunk.loc['NAME']]
+        codename = tlist[1] + tlist[2]
+        if tlist[0] == '':
+            print(tlist)
+        elif tlist[0] == MARKER_TYPE_SZ_ZXB:
+            UpParent = treeWidget.topLevelItem(2)
+            child = QTreeWidgetItem(UpParent)
+            child.setText(0, codename)
+        elif tlist[0] == MARKER_TYPE_SH_KCB:
+            UpParent = treeWidget.topLevelItem(3)
+            child = QTreeWidgetItem(UpParent)
+            child.setText(0, codename)
+        elif tlist[0] == MARKER_TYPE_SZ_CYB:
+            UpParent = treeWidget.topLevelItem(4)
+            child = QTreeWidgetItem(UpParent)
+            child.setText(0, codename)
+        elif MARKER_TYPE_B in tlist[0]:
+            if tlist[0] == MARKER_TYPE_SZ_B:
+                UpParent = treeWidget.topLevelItem(1).child(0)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, codename)
+            elif tlist[0] == MARKER_TYPE_SH_B:
+                UpParent = treeWidget.topLevelItem(1).child(1)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, codename)
+        elif MARKER_TYPE_A in tlist[0]:
+            if tlist[0] == MARKER_TYPE_SZ_A:
+                UpParent = treeWidget.topLevelItem(0).child(0)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, codename)
+            elif tlist[0] == MARKER_TYPE_SH_A:
+                UpParent = treeWidget.topLevelItem(0).child(1)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, codename)
+
+    def treeInitWEork(self, listdata):
+        print("this is listdata"  )
+        AllStockData = listdata[0]
+        for i in range(0, len(AllStockData)):
+            chunk = AllStockData.loc[i]
+            self.addTreeData(chunk, listdata[1])
+
+        self.signal_Quit.emit( )		
 
 class LogicWindow(QMainWindow, Ui_MainWindow):
     signal_Show = pyqtSignal(str)
     signal_Close = pyqtSignal(int, str)
+
+    signal_StartTreeInitWEork = pyqtSignal(list)
 
     
     g_datapath = os.path.dirname(os.path.abspath(__file__))
@@ -133,8 +192,8 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
                 # print(setlist)
                 self.completerCodeListModel.setStringList(setlist)
 
-      
-    def setTreeHeader(self):  
+
+    def setTreeData(self):#use more source
         self.treeWidget.headerItem().setText(0, "股市")
         UpParent = QTreeWidgetItem(self.treeWidget)
         UpParent.setText(0, "A股")
@@ -154,64 +213,24 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         UpParent.setText(0, "科创板")
         UpParent = QTreeWidgetItem(self.treeWidget)
         UpParent.setText(0, "创业板")
-
-    def addTreeData(self, chunk):      
-        codename = "%(code)06d"%{'code':chunk.loc['SYMBOL']}
-        tlist=[stock_CodeIdentify(codename), codename, chunk.loc['NAME']]
-        codename = tlist[1] + tlist[2]
-        if tlist[0] == '':
-            print(tlist)
-        elif tlist[0] == MARKER_TYPE_SZ_ZXB:
-            UpParent = self.treeWidget.topLevelItem(2)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
-            self.logfp.write(str(tlist[1]))
-        elif tlist[0] == MARKER_TYPE_SH_KCB:
-            UpParent = self.treeWidget.topLevelItem(3)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
-        elif tlist[0] == MARKER_TYPE_SZ_CYB:
-            UpParent = self.treeWidget.topLevelItem(4)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
-        elif MARKER_TYPE_B in tlist[0]:
-            if tlist[0] == MARKER_TYPE_SZ_B:
-                UpParent = self.treeWidget.topLevelItem(1).child(0)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
-            elif tlist[0] == MARKER_TYPE_SH_B:
-                UpParent = self.treeWidget.topLevelItem(1).child(1)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
-        elif MARKER_TYPE_A in tlist[0]:
-            if tlist[0] == MARKER_TYPE_SZ_A:
-                UpParent = self.treeWidget.topLevelItem(0).child(0)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
-            elif tlist[0] == MARKER_TYPE_SH_A:
-                UpParent = self.treeWidget.topLevelItem(0).child(1)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
-        self.logfp.flush()
-
-    def setTreeData(self):#use more source
-        self.setTreeHeader()
-        self.AllStockData = stock_IdentifyType(1)
-        for i in range(0, len(self.AllStockData)):
-            chunk = self.AllStockData.loc[i]
-            self.addTreeData(chunk)
         self.treeWidget.itemClicked['QTreeWidgetItem*','int'].connect(self.treeItemClick)
+        
+        self.AllStockData = stock_IdentifyType(1)
+        datalist=[]
+        datalist.append(self.AllStockData)
+        datalist.append(self.treeWidget)
+        self.WorkThread=QThread()
+        self.Worker=WorkObject()
+        self.Worker.moveToThread(self.WorkThread)
+        self.WorkThread.started.connect(self.Worker.mainWorker)
+        self.signal_StartTreeInitWEork.connect(self.Worker.treeInitWEork)
+        self.Worker.signal_Quit.connect(self.WorkQuit)
+        self.WorkThread.start()
+        self.signal_StartTreeInitWEork.emit(datalist)
 
-    def setTreeDataByItor(self):#use more time
-        self.setTreeHeader()
-        ItData = stock_IdentifyType(0)
-        while True:
-            try:
-                chunk = ItData.get_chunk(1)
-                self.addTreeData(chunk.loc[chunk.index.start])  
-            except StopIteration:
-                print ("market Iteration is stopped.")
-                break
+    def WorkQuit(self,):
+        self.WorkThread.quit()
+
 
     def treeItemClick(self,item,n):
         print("this is item : " + item.text(n) + "num is : " + str(n))

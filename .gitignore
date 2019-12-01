@@ -1,4 +1,5 @@
-*log.txt
+*.txt
 csvdata
 acsvdata
 pyqt/__pycache__
+pyqt/*.txt
