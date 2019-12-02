@@ -155,16 +155,13 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
 
 
     def setInitData(self):
-        # self.AllStockData = pd.DataFrame()
         self.dateEdit_Start.setDate(QDate.currentDate())
         self.dateEdit_End.setDate(QDate.currentDate())
+        self.setCodeName()
+
+    def setCodeName(self):#use more time
         # self.lineEdit_StockCode.editingFinished.connect(self.editCodeFinished)
         self.lineEdit_StockCode.textChanged['QString'].connect(self.searchCodeChange)
-        # self.lineEdit_StockName.editingFinished.connect(self.editCodeFinished)
-        # self.lineEdit_StockName.textChanged['QString'].connect(self.searchNameChange)
-        self.setCompleter()
-
-    def setCompleter(self):#use more time
         self.completerCodeEdit = QCompleter()
         # # 设置匹配模式  有三种： Qt.MatchStartsWith 开头匹配（默认）  Qt.MatchContains 内容匹配  Qt.MatchEndsWith 结尾匹配
         self.completerCodeEdit.setFilterMode(QtCore.Qt.MatchContains)
@@ -226,7 +223,7 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         UpParent = QTreeWidgetItem(self.treeWidget)
         UpParent.setText(0, "创业板")
         # self.treeWidget.itemClicked['QTreeWidgetItem*','int'].connect(self.treeItemClick)
-        self.treeWidget.currentItemChanged['QTreeWidgetItem*','QTreeWidgetItem*'].connect(self.treeItemClick)
+        self.treeWidget.currentItemChanged.connect(self.treeItemChange)
 
         datalist=[]
         # self.AllStockData = stock_IdentifyType(1)
@@ -248,9 +245,13 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
     def treeItemClick(self,item,n):
         print("this is item : " + item.text(n) + "num is : " + str(n))
         self.lineEdit_StockCode.setText(item.text(n))
-    def treeItemChange(self,item,itempre):
-        print("this is item : " + item.text(0) + "num is : " + str(0))
-        self.lineEdit_StockCode.setText(item.text(0))
+    def treeItemChange(self,currentitem,preitem):
+        # if preitem:
+        #     print("pre item is : " + preitem.text(0) )
+        # else:
+        #     print("pre item is : none " )
+        # print("current item is : " + currentitem.text(0) )
+        self.lineEdit_StockCode.setText(currentitem.text(0))
 
         
 
