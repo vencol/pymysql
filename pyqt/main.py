@@ -20,8 +20,7 @@ class WorkObject(QObject):
     def __init__(self,parent=None):
         super(WorkObject, self).__init__(parent)
         self.startType = 0
-
-        
+   
     def addTreeData(self, chunk):      
         codename = "%(code)06d"%{'code':chunk.loc['SYMBOL']}
         tlist=[stock_CodeIdentify(codename), codename, chunk.loc['NAME']]
@@ -234,6 +233,7 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         #     print("pre item is : none " )
         # print("current item is : " + currentitem.text(0) )
         self.lineEdit_StockCode.setText(currentitem.text(0))
+        print(stock_GetLocalData(currentitem.text(0)))
 
         
 

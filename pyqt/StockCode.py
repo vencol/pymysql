@@ -3,6 +3,8 @@ import os
 import pandas as pd
 
 
+import _locale
+_locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
 
 MARKER_TYPE_A='AGU'
 MARKER_TYPE_SZ_A='AGUSZ'
@@ -16,8 +18,8 @@ MARKER_TYPE_SZ_CYB='CYBSZ'
 MARKER_TYPE_SH_KCB='KCBSH'
 
 
-BASE_DATA_PATH = os.path.dirname(os.path.abspath(__file__))
-A_MARKER_DATA_PATH = BASE_DATA_PATH + "\\..\\acsvdata\\.data.csv"
+BASE_DATA_PATH = os.path.dirname(os.path.abspath(__file__)) + "\\..\\acsvdata"
+A_MARKER_DATA_PATH = BASE_DATA_PATH + "\\.data.csv"
 
 
 
@@ -275,22 +277,19 @@ def stock_IdentifyType(type):
         StockItData = pd.read_csv(A_MARKER_DATA_PATH)#, iterator=True)#SYMBOL	NAME	DATE	VOLUME
     return StockItData
 
-    # itChunkList = []
-    # while True:
-    #     try:
-    #         chunk = StockItData.get_chunk(1)
-    #         code = "%(code)06d"%{'code':chunk.loc[chunk.index.start,'SYMBOL']}
-    #         tlist=[stock_CodeIdentify(code), code, chunk.loc[chunk.index.start,'NAME']]
-    #         if tlist[0] == '':
-    #             print(tlist)
-    #         itChunkList.append(tlist)
-    #     except StopIteration:
-    #         print ("market Iteration is stopped.")
-    #         break
-    # # print(itChunkList)
-    # return itChunkList
 
+def stock_GetLocalData(codename):
+    stockfile = BASE_DATA_PATH + "\\%(name)s.csv"%{'name' : codename}
+    print(stockfile)
+    if (os.path.exists(stockfile)):
+        stockdata = pd.read_csv(stockfile, encoding='gbk')
+        print(stockdata)
+        return stockdata
+    else:
+        return pd.DataFrame()
 
 # if __name__ == "__main__": 
-# stock_CodeIdentify('003816')
-# stock_IdentifyType()
+#     # stock_CodeIdentify('003816')
+#     # stock_IdentifyType()
+#     stock_GetLocalData('000001平安银行')
+#     stock_GetLocalData('000001平安行')
