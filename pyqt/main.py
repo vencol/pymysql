@@ -15,56 +15,38 @@ _locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
 
 # http://quotes.money.163.com/hs/service/diyrank.php?host=http%3A%2F%2Fquotes.money.163.com%2Fhs%2Fservice%2Fdiyrank.php&page=0&query=STYPE%3AEQA%3BEXCHANGE%3ACNSESH&fields=SYMBOL&count=5000&type=query
 class WorkObject(QObject):
-    signal_Quit =pyqtSignal()
+    signal_Add =pyqtSignal(int, int, str)
 
     def __init__(self,parent=None):
         super(WorkObject, self).__init__(parent)
         self.startType = 0
 
-    def mainWorker(self):
-        if self.startType == 0:
-            time.sleep(0.1)
         
-    def addTreeData(self, chunk, treeWidget):      
+    def addTreeData(self, chunk):      
         codename = "%(code)06d"%{'code':chunk.loc['SYMBOL']}
         tlist=[stock_CodeIdentify(codename), codename, chunk.loc['NAME']]
         codename = tlist[1] + tlist[2]
         if tlist[0] == '':
             print(tlist)
         elif tlist[0] == MARKER_TYPE_SZ_ZXB:
-            UpParent = treeWidget.topLevelItem(2)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
+            self.signal_Add.emit(2, -1, codename)
         elif tlist[0] == MARKER_TYPE_SH_KCB:
-            UpParent = treeWidget.topLevelItem(3)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
+            self.signal_Add.emit(3, -1, codename)
         elif tlist[0] == MARKER_TYPE_SZ_CYB:
-            UpParent = treeWidget.topLevelItem(4)
-            child = QTreeWidgetItem(UpParent)
-            child.setText(0, codename)
+            self.signal_Add.emit(4, -1, codename)
         elif MARKER_TYPE_B in tlist[0]:
             if tlist[0] == MARKER_TYPE_SZ_B:
-                UpParent = treeWidget.topLevelItem(1).child(0)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
+                self.signal_Add.emit(1, 0, codename)
             elif tlist[0] == MARKER_TYPE_SH_B:
-                UpParent = treeWidget.topLevelItem(1).child(1)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
+                self.signal_Add.emit(1, 1, codename)
         elif MARKER_TYPE_A in tlist[0]:
             if tlist[0] == MARKER_TYPE_SZ_A:
-                UpParent = treeWidget.topLevelItem(0).child(0)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
+                self.signal_Add.emit(0, 0, codename)
             elif tlist[0] == MARKER_TYPE_SH_A:
-                UpParent = treeWidget.topLevelItem(0).child(1)
-                child = QTreeWidgetItem(UpParent)
-                child.setText(0, codename)
+                self.signal_Add.emit(0, 1, codename)
 
-    def treeInitWorker(self, listdata):
+    def treeInitWorker(self):
         print("this is listdata"  )
-        tree = listdata[0]
 
         # ItData = stock_IdentifyType(0)
         # while True:
@@ -78,16 +60,12 @@ class WorkObject(QObject):
         AllStockData = stock_IdentifyType(1)
         for i in range(0, len(AllStockData)):
             chunk = AllStockData.loc[i]
-            self.addTreeData(chunk, tree)
-
-        tree.collapseAll()
-        self.signal_Quit.emit( )		
+            self.addTreeData(chunk)
+        self.signal_Add.emit(-1, -1, 'add over')	
 
 class LogicWindow(QMainWindow, Ui_MainWindow):
     signal_Show = pyqtSignal(str)
     signal_Close = pyqtSignal(int, str)
-
-    signal_StartTreeInitWEork = pyqtSignal(list)
 
     
     g_datapath = os.path.dirname(os.path.abspath(__file__))
@@ -225,22 +203,26 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         # self.treeWidget.itemClicked['QTreeWidgetItem*','int'].connect(self.treeItemClick)
         self.treeWidget.currentItemChanged.connect(self.treeItemChange)
 
-        datalist=[]
-        # self.AllStockData = stock_IdentifyType(1)
-        # datalist.append(self.AllStockData)
-        datalist.append(self.treeWidget)
         self.WorkThread=QThread()
         self.Worker=WorkObject()
         self.Worker.moveToThread(self.WorkThread)
-        self.WorkThread.started.connect(self.Worker.mainWorker)
-        self.signal_StartTreeInitWEork.connect(self.Worker.treeInitWorker)
-        self.Worker.signal_Quit.connect(self.WorkQuit)
+        self.WorkThread.started.connect(self.Worker.treeInitWorker)
+        self.Worker.signal_Add.connect(self.treeItemAdd)
         self.WorkThread.start()
-        self.signal_StartTreeInitWEork.emit(datalist)
 
-    def WorkQuit(self,):
-        self.WorkThread.quit()
-
+    def treeItemAdd(self, parenttype, childtype, name):
+        if parenttype < 0:
+            self.treeWidget.collapseAll()
+            self.WorkThread.quit()
+        else:
+            if childtype < 0:
+                UpParent = self.treeWidget.topLevelItem(parenttype)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, name)
+            else:
+                UpParent = self.treeWidget.topLevelItem(parenttype).child(childtype)
+                child = QTreeWidgetItem(UpParent)
+                child.setText(0, name)
 
     def treeItemClick(self,item,n):
         print("this is item : " + item.text(n) + "num is : " + str(n))
