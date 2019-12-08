@@ -9,6 +9,7 @@ from PyQt5.QtCore import pyqtSignal, QDate, QStringListModel, QThread, QObject
 import numpy as np
 import pandas as pd
 from StockCode import *
+from StockGraph import *
 
 import _locale
 _locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
@@ -45,7 +46,7 @@ class WorkObject(QObject):
                 self.signal_Add.emit(0, 1, codename)
 
     def treeInitWorker(self):
-        print("this is listdata"  )
+        # print("this is listdata"  )
 
         # ItData = stock_IdentifyType(0)
         # while True:
@@ -77,7 +78,10 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setMenuData()
         self.setInitData()
+        self.setInitData()
+        self.setInitTabData()
         self.setTreeData()
+        self.setInitTabGraph()
 
 
     def showEvent(self, evt):
@@ -134,7 +138,7 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
     def setInitData(self):
         self.dateEdit_Start.setDate(QDate.currentDate())
         self.dateEdit_End.setDate(QDate.currentDate())
-        self.setCodeName()
+        self.setCodeName()        
 
     def setCodeName(self):#use more time
         # self.lineEdit_StockCode.editingFinished.connect(self.editCodeFinished)
@@ -235,7 +239,72 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
         self.lineEdit_StockCode.setText(currentitem.text(0))
         print(stock_GetLocalData(currentitem.text(0)))
 
-        
+
+    def setInitTabData(self):
+        # prise data init
+        self.pushButtonEralyClose.clicked.connect(self.ButtonEralyCloseCliked)
+        self.pushButtonEralyClose.setStyleSheet(
+                                "QPushButton{background-color:magenta}"  #按键背景色
+                                "QPushButton{border-radius:6px}"  #圆角半径
+                                )                                
+        self.pushButtonOpen.clicked.connect(self.ButtonOpenCliked)
+        self.pushButtonOpen.setStyleSheet("QPushButton{background-color:red}" "QPushButton{border-radius:6px}")
+        self.pushButtonClose.clicked.connect(self.ButtonCloseCliked)
+        self.pushButtonClose.setStyleSheet("QPushButton{background-color:green}" "QPushButton{border-radius:6px}")
+        self.pushButtonHigh.clicked.connect(self.ButtonHighCliked)
+        self.pushButtonHigh.setStyleSheet("QPushButton{background-color:blue}" "QPushButton{border-radius:6px}")
+        self.pushButtonLow.clicked.connect(self.ButtonLowCliked)
+        self.pushButtonLow.setStyleSheet("QPushButton{background-color:yellow}" "QPushButton{border-radius:6px}")
+
+    def ButtonEralyCloseCliked(self):
+        if self.pushButtonEralyClose.isChecked():
+            self.pushButtonEralyClose.setStyleSheet("QPushButton{background-color:magenta}" "QPushButton{border-radius:6px}")
+        else:
+            self.pushButtonEralyClose.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+
+    def ButtonOpenCliked(self):
+        if self.pushButtonOpen.isChecked():
+            self.pushButtonOpen.setStyleSheet("QPushButton{background-color:red}" "QPushButton{border-radius:6px}")
+        else:
+            self.pushButtonOpen.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+
+    def ButtonCloseCliked(self):
+        if self.pushButtonClose.isChecked():
+            self.pushButtonClose.setStyleSheet("QPushButton{background-color:green}" "QPushButton{border-radius:6px}")
+        else:
+            self.pushButtonClose.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+
+    def ButtonHighCliked(self):
+        if self.pushButtonHigh.isChecked():
+            self.pushButtonHigh.setStyleSheet("QPushButton{background-color:blue}" "QPushButton{border-radius:6px}")
+        else:
+            self.pushButtonHigh.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+
+    def ButtonLowCliked(self):
+        if self.pushButtonLow.isChecked():
+            self.pushButtonLow.setStyleSheet("QPushButton{background-color:yellow}" "QPushButton{border-radius:6px}")
+        else:
+            self.pushButtonLow.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+    
+    
+    def setInitTabGraph(self):
+        self.graphicScenePrice = QtWidgets.QGraphicsScene()
+        dpi = 100
+        StockGraphPrice = StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
+        StockGraphPrice.paintStockPrice('000001平安银行')
+        self.graphicScenePrice.addWidget(StockGraphPrice)
+        self.graphicsViewPrise.setScene(self.graphicScenePrice)
+        self.graphicsViewPrise.show()
+
+
+    def resizeEvent(self, QResizeEvent):
+        # dpi = 100
+        # StockGraphPrice = StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
+        # # StockGraphPrice.test()
+        # self.graphicScenePrice.addWidget(StockGraphPrice)
+        # self.graphicsViewPrise.setScene(self.graphicScenePrice)
+        # self.graphicsViewPrise.show()
+        pass
 
 if __name__ == "__main__": 
     app = QtWidgets.QApplication(sys.argv)

@@ -278,7 +278,7 @@ def stock_IdentifyType(type):
     return StockItData
 
 
-def stock_GetLocalData(codename):
+def stock_GetLocalData(codename='000001平安银行'):
     stockfile = BASE_DATA_PATH + "\\%(name)s.csv"%{'name' : codename}
     print(stockfile)
     if (os.path.exists(stockfile)):
