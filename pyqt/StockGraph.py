@@ -3,6 +3,7 @@ import _locale
 _locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
 
 
+import numpy as np
 from StockCode import *
 from PyQt5.QtCore import pyqtSignal, QThread, QObject
 
@@ -45,6 +46,21 @@ class StockGraph(FigureCanvas):
         self.axes.plot(stockdata.index[-60:], stockdata['最低价'][-60:], color='yellow')
         self.axes.plot(stockdata.index[-60:], stockdata['收盘价'][-60:], color='green')
 
+        # tarray =np.array(stockdata.index)
+        tdata = pd.DataFrame(np.arange(0,len(stockdata)))
+        print(tdata)
+        pricearray = pd.concat([tdata, stockdata[['开盘价', '最高价', '最低价', '收盘价']]],axis=1)
+        print(pricearray)
+        datepricelist =np.array(pricearray).tolist()
+        # pricearray =np.array(stockdata[['开盘价', '最高价', '最低价', '收盘价']])
+        # pricelist = (tarray + pricearray).tolist()
+        # print(type(pricelist))
+        # print(pricelist)
+        # tlist = list(range(len(stockdata)))
+        # print(tlist)
+        # datepricelist = [tlist, pricelist]
+        # print(sum(datepricelist, []))
+        mpf.candlestick_ohlc(self.axes, datepricelist[-60:], width=1.2, colorup='r', colordown='green')
         # data_list = []
         # for row in stockdata[['日期', '开盘价', '最高价', '最低价', '收盘价']]:
         #     print(row)
