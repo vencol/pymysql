@@ -283,7 +283,7 @@ def stock_GetLocalData(codename='000001平安银行'):
     print(stockfile)
     if (os.path.exists(stockfile)):
         stockdata = pd.read_csv(stockfile, encoding='gbk')
-        print(stockdata)
+        # print(stockdata)
         return stockdata
     else:
         return pd.DataFrame()
