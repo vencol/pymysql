@@ -285,14 +285,24 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonLow.setStyleSheet("QPushButton{background-color:yellow}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonLow.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+        self.GraphWorker.graphShowLowLine(0)#self.pushButtonLow.isChecked())
     
     
     def setInitTabGraph(self):
         self.graphicScenePrice = QtWidgets.QGraphicsScene()
         dpi = 100
-        StockGraphPrice = StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
-        StockGraphPrice.paintStockPrice('000001平安银行')
-        self.graphicScenePrice.addWidget(StockGraphPrice)
+        # StockGraphPrice = StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
+        # StockGraphPrice.paintStockPrice('000001平安银行')
+
+        self.GraphThread=QThread()
+        self.GraphWorker=StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
+        self.GraphWorker.moveToThread(self.GraphThread)
+        # self.GraphThread.started.connect(self.GraphWorker.graphInitWorker)
+        # self.GraphWorker.signal_Add.connect(self.treeItemAdd)
+        self.GraphThread.start()
+        self.GraphWorker.graphInitPriceWorker()
+
+        self.graphicScenePrice.addWidget(self.GraphWorker)
         self.graphicsViewPrise.setScene(self.graphicScenePrice)
         self.graphicsViewPrise.show()
 
