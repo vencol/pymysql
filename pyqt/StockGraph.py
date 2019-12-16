@@ -6,6 +6,7 @@ _locale._getdefaultlocale = (lambda *args: ['zh_CN', 'utf8'])
 import numpy as np
 from StockCode import *
 from PyQt5.QtCore import pyqtSignal, QThread, QObject
+from PyQt5.QtWidgets import QSizePolicy
 
 import matplotlib
 matplotlib.use("Qt5Agg")  # 声明使用QT5
@@ -84,6 +85,8 @@ class StockGraph(FigureCanvas):
         FigureCanvas.__init__(self, self.fig) # 初始化父类
         self.fig.subplots_adjust(bottom=0.2)
         self.setParent(parent)
+        FigureCanvas.setSizePolicy(self, QSizePolicy.Expanding,  QSizePolicy.Expanding)
+        FigureCanvas.updateGeometry(self)
 
         self.LastCode = ''
         self.BeforeLine = 0
@@ -130,35 +133,59 @@ class StockGraph(FigureCanvas):
     def graphShowBeforeLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
             if show:
-                self.BeforeLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['前收盘'][-self.PeriodDay: -self.PeriodSpace :], color='magenta')
+                if self.BeforeLine:
+                    self.BeforeLine[0].set_color('magenta')
+                else:
+                    self.BeforeLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['前收盘'][-self.PeriodDay: -self.PeriodSpace :], color='magenta')
             elif self.BeforeLine:
-                self.BeforeLine.pop(0).remove()
+                self.BeforeLine[0].set_color('white')
+                # self.BeforeLine.pop(0).remove()
+            self.draw()
     
     def graphShowOpenLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
             if show:
-                self.OpenLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['开盘价'][-self.PeriodDay: -self.PeriodSpace :], color='red')
+                if self.OpenLine:
+                    self.OpenLine[0].set_color('red')
+                else:
+                    self.OpenLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['开盘价'][-self.PeriodDay: -self.PeriodSpace :], color='red')
             elif self.OpenLine:
-                self.OpenLine.pop(0).remove()
+                self.OpenLine[0].set_color('white')
+                # self.OpenLine.pop(0).remove()
+            self.draw()
     
     def graphShowCloseLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
             if show:
-                self.CloseLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['收盘价'][-self.PeriodDay: -self.PeriodSpace :], color='green')
+                if self.CloseLine:
+                    self.CloseLine[0].set_color('green')
+                else:
+                    self.CloseLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['收盘价'][-self.PeriodDay: -self.PeriodSpace :], color='green')
             elif self.CloseLine:
-                self.CloseLine.pop(0).remove()
+                self.CloseLine[0].set_color('white')
+                # self.CloseLine.pop(0).remove()
+            self.draw()
     
     def graphShowHighLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
             if show:
-                self.HighLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['最高价'][-self.PeriodDay: -self.PeriodSpace :], color='blue')
+                if self.HighLine:
+                    self.HighLine[0].set_color('blue')
+                else:
+                    self.HighLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['最高价'][-self.PeriodDay: -self.PeriodSpace :], color='blue')
             elif self.HighLine:
-                self.HighLine.pop(0).remove()
+                self.HighLine[0].set_color('white')
+            self.draw()
     
     def graphShowLowLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
             if show:
-                self.LowLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['最低价'][-self.PeriodDay: -self.PeriodSpace :], color='yellow')
+                if self.LowLine:
+                    self.LowLine[0].set_color('yellow')
+                else:
+                    self.LowLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['最低价'][-self.PeriodDay: -self.PeriodSpace :], color='yellow')
             elif self.LowLine:
-                self.LowLine.pop(0).remove()
+                self.LowLine[0].set_color('white')
+                # self.LowLine.pop(0).remove()
+            self.draw()
 

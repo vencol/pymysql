@@ -261,35 +261,41 @@ class LogicWindow(QMainWindow, Ui_MainWindow):
             self.pushButtonEralyClose.setStyleSheet("QPushButton{background-color:magenta}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonEralyClose.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+        self.GraphWorker.graphShowBeforeLine(self.pushButtonEralyClose.isChecked())
 
     def ButtonOpenCliked(self):
         if self.pushButtonOpen.isChecked():
             self.pushButtonOpen.setStyleSheet("QPushButton{background-color:red}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonOpen.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+        self.GraphWorker.graphShowOpenLine(self.pushButtonOpen.isChecked())
 
     def ButtonCloseCliked(self):
         if self.pushButtonClose.isChecked():
             self.pushButtonClose.setStyleSheet("QPushButton{background-color:green}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonClose.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+        self.GraphWorker.graphShowCloseLine(self.pushButtonClose.isChecked())
 
     def ButtonHighCliked(self):
         if self.pushButtonHigh.isChecked():
             self.pushButtonHigh.setStyleSheet("QPushButton{background-color:blue}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonHigh.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
+        self.GraphWorker.graphShowHighLine(self.pushButtonHigh.isChecked())
 
     def ButtonLowCliked(self):
         if self.pushButtonLow.isChecked():
             self.pushButtonLow.setStyleSheet("QPushButton{background-color:yellow}" "QPushButton{border-radius:6px}")
         else:
             self.pushButtonLow.setStyleSheet("QPushButton{background-color:rgb(255,255,255)}" "QPushButton{border-radius:6px}")
-        self.GraphWorker.graphShowLowLine(0)#self.pushButtonLow.isChecked())
+        self.GraphWorker.graphShowLowLine(self.pushButtonLow.isChecked())
     
     
     def setInitTabGraph(self):
         self.graphicScenePrice = QtWidgets.QGraphicsScene()
+        # self.graphicScenePrice.setSizePolicy(self, QSizePolicy.Expanding,  QSizePolicy.Expanding)
+        # self.graphicScenePrice.updateGeometry(self)
         dpi = 100
         # StockGraphPrice = StockGraph(width=self.tabStockData.width()/dpi+1, height=self.tabStockData.height()/dpi, dpi=dpi)
         # StockGraphPrice.paintStockPrice('000001平安银行')
