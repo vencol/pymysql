@@ -123,12 +123,19 @@ class StockGraph(FigureCanvas):
                 self.LastCode = ''
             else:
                 self.LastCode = codename
-                self.PeriodDay = periodday
-                self.PeriodSpace = periodspace
                 tdata = pd.DataFrame(np.arange(0,len(self.StockData)))
                 pricearray = pd.concat([tdata, self.StockData[['开盘价', '最高价', '最低价', '收盘价']]],axis=1)
                 self.DatepPiceList =np.array(pricearray).tolist()
                 # print(self.DatepPiceList)
+        if self.StockData.empty :
+            self.PeriodSpace = periodspace
+            if periodday * periodspace > len(self.StockData):
+                self.PeriodDay = len(self.StockData) / 3
+            else:
+                self.PeriodDay = periodday
+        else:
+            self.PeriodDay = 50000
+        
     
     def graphShowBeforeLine(self, show):
         if self.LastCode and self.PeriodDay <= len(self.StockData):
@@ -182,8 +189,18 @@ class StockGraph(FigureCanvas):
             if show:
                 if self.LowLine:
                     self.LowLine[0].set_color('yellow')
-                else:
-                    self.LowLine = self.Axes.plot(self.StockData.index[-self.PeriodDay: -self.PeriodSpace :], self.StockData['最低价'][-self.PeriodDay: -self.PeriodSpace :], color='yellow')
+                else:# 没有判断时间是因为设置参数判断了
+                    MaxDay = self.PeriodDay * self.PeriodSpace
+                    CellData = self.StockData['最低价'][-MaxDay : : self.PeriodSpace]
+                    CellData.index = range(0, self.PeriodDay)
+                    DrawData = CellData
+                    for i in range(1 , self.PeriodSpace):
+                        CellData = self.StockData['最低价'][-MaxDay + i : : self.PeriodSpace]
+                        CellData.index = range(0, self.PeriodDay)
+                        DrawData = DrawData + CellData
+                    DrawData = DrawData / self.PeriodSpace
+                    print(DrawData)
+                    self.LowLine = self.Axes.plot(self.StockData.index[-MaxDay + self.PeriodSpace - 1 : : self.PeriodSpace], DrawData, color='yellow')
             elif self.LowLine:
                 self.LowLine[0].set_color('white')
                 # self.LowLine.pop(0).remove()
